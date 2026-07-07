@@ -24,8 +24,9 @@ ELI_VERSION="4.508"
 ELI_CODENAME="The VPS of Eli" # - используется в баннере и book -
 
 # --> ЦВЕТА <--
-RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
-CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m';
+CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m';
+
 
 # --> ФУНКЦИИ ВЫВОДА <--
 # - единый набор для всего скрипта -
@@ -39,18 +40,93 @@ print_section() {
     echo -e "${CYAN}$(printf -- '-%.0s' {1..54})${NC}"
 }
 
+###################
+### Переменные: ###
+###################
+cur_dir=$(cd $(dirname "$0") 2>/dev/null && pwd) || cur_dir=".";
+dir_name="${PWD##*/}";
+script_name_ext="${0##*/}";
+script_name="${script_name_ext%.*}";
+app_file=${script_name_ext};
+app_name=${1:-$script_name};
+pr_name=${2:-$app_name};
+
+DEBUG_OUT=true
+SAVE_LOG=false
+DEFAULT_LOG="$cur_dir/logs/$app_name.log";
+
+NO_COLOR=false;
+##########################################
+### Цвета и основные заготовки вывода: ###
+##########################################
+ _end='m'; _nc='\033[0'; _bld='\033[1'; _sma='\033[2'; _cur='\033[3'; _under='\033[4'; _blink='\033[5';
+_col() { echo -e ${_nc}';'$1${_end}; }
+_bcol() { echo -e ${_bld}';'$1${_end}; }
+
+if [ -t 1 ] && $DEBUG_OUT && ! $NO_COLOR; then
+    nc=(${_nc}${_end}); bld=(${_bld}${_end}); bnc=(${nc}${bld})
+    red=$(_col 31); green=$(_col 32); yell=$(_col 33); blue=$(_col 34); mag=$(_col 35); cyn=$(_col 36); white=$(_col 37);
+    bred=$(_bcol 31); bgreen=$(_bcol 32); byell=$(_bcol 33); bblue=$(_bcol 34); bmag=$(_bcol 35); bcyn=$(_bcol 36); bwhite=$(_bcol 37);
+    rev=$(tput rev);
+    sym_ok="${green}✅${bnc}"; sym_err="${red}❌${nc}"; install="${bnc}💿${nc}";
+    sym_info="${bblue}📋${nc}";sym_warn="${byell}⚠️${nc}"; sym_dbg="${bwhite}🔧${nc}"; sym_star="${byell}✨${nc}";
+else
+    nc=''; bld='';
+    red=''; green=''; yell=''; blue=''; mag=''; cyn=''; white='';
+    bred=''; bgreen=''; byell=''; bblue=''; bmag=''; bcyn=''; bwhite='';
+    rev='';
+    sym_ok='✅'; sym_err='❌'; install='💿'; sym_info='📋'; sym_warn='⚠'; sym_dbg='🔧'; sym_star='✨';
+fi
+toend=$(tput hpa $(tput cols))$(tput cub 6);
+_resh=$(printf '\x23');
+
+#printf "$toend %s\n" "$_resh";
+
+app_title() {
+    local name=${pr_name:-$dir_name};
+    printf " ${bnc}[${nc}${bmag}${name}${bnc}]${nc}";
+}
+printstr() {
+    local _head=$(app_title);local _str;
+    printf "$_head $3 $2${bnc}$1${byell} %s\n${nc}" "$4";
+}
+
+stars="${byell}✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨${nc}";
+line="##############################################################";
+dashes='------------------------------------------------------------------------------'
+equals='============================================================'
+
+# The VPS of Eli v${ELI_VERSION}
+# scrp by ERITEK & Loo1  Claude (Anthropic)
+
+function showdate(){
+   printf '\033[;H' # Move the cursor to the top of the screen
+   date             # Print the date (change with the format you need for the clock)
+   sleep 1          # Sleep (pause) for 1 second
+#   showdate         # Call itself
+}
+#showdate            # Call the function which will display the clock
+
 # --> ГЛАВНЫЙ ЗАГОЛОВОК <--
 # - выводит баннер The VPS of Eli, очищает экран -
 eli_header() {
     clear
-    echo -e "${BOLD}"
-    echo "+=========================+"
-    echo "|     The VPS of Eli      |"
-    echo "|  scrp by ERITEK & Loo1  |"
-    echo "|    Claude (Anthropic)   |"
-    echo "|         v${ELI_VERSION}          |"
-    echo "+=========================+"
-    echo -e "${NC}"
+printf "\n";
+printf "  ${bnc} ╔══════════════════════════════════════════════════════════════════════════════╗\n";
+printf "  ${bnc} ║                                                                              ║\n";
+printf "  ${bnc} ║${bmag}   █████╗ ███╗   ███╗███╗   ██╗███████╗███████╗██╗ █████╗ ██╗    ██╗ ██████╗  ${bnc}║\n";
+printf "  ${bnc} ║${bmag}  ██╔══██╗████╗ ████║████╗  ██║╚══███╔╝██╔════╝██║██╔══██╗██║    ██║██╔════╝  ${bnc}║\n";
+printf "  ${bnc} ║${bmag}  ███████║██╔████╔██║██╔██╗ ██║  ███╔╝ █████╗  ██║███████║██║ █╗ ██║██║  ███╗ ${bnc}║\n";
+printf "  ${bnc} ║${bmag}  ██╔══██║██║╚██╔╝██║██║╚██╗██║ ███╔╝  ██╔══╝  ██║██╔══██║██║███╗██║██║   ██║ ${bnc}║\n";
+printf "  ${bnc} ║${bmag}  ██║  ██║██║ ╚═╝ ██║██║ ╚████║███████╗███████╗██║██║  ██║╚███╔███╔╝╚██████╔╝ ${bnc}║\n";
+printf "  ${bnc} ║${bmag}  ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝╚═╝╚═╝  ╚═╝ ╚══╝╚══╝  ╚═════╝  ${bnc}║\n";
+printf "  ${bnc} ║                                                                              ║\n";
+printf "  ${bnc} ║                  Установка / Удаление AmneziaWG Client                       ║\n";
+printf "  ${bnc} ║                                                                              ║\n";
+printf "  ${bnc} ║                                                                              ║\n";
+printf "  ${bnc} ║                             %s                                        ║\n" "$(showdate)";
+printf "  ${bnc} ║                              ${sym_star}${mag} Хорошего дня! ${sym_star}${bnc}                             ║\n";
+printf "  ${bnc} ╚══════════════════════════════════════════════════════════════════════════════╝${nc}\n";
 }
 
 # --> ПЛАШКА РАЗДЕЛА <--
@@ -58,14 +134,14 @@ eli_header() {
 eli_banner() {
     local title="$1"
     local desc="$2"
-    echo ""
-    echo -e "  ${BOLD}${CYAN}==============================================${NC}"
-    echo -e "   ${BOLD}${title}${NC}"
-    echo -e "  ${BOLD}${CYAN}==============================================${NC}"
+printf "  ${bmag}┌────────────────────────────────────────────────────────────────────────────────────${bnc}\n";
+printf "  ${bmag}│${byell}✨${bnc}          $title                                              ${byell}✨${bnc}\n";
+printf "  ${bmag}└─────────────────────────────────────────────────────────────────────────────────────${bnc}\n";
     if [[ -n "$desc" ]]; then
         echo ""
-        echo -e "  ${CYAN}${desc}${NC}"
+        echo -e "  ${bnc}${desc}${nc}"
     fi
+printf "%s\n" "$dashes";
     echo ""
 }
 
@@ -183,6 +259,69 @@ ask_raw() {
 eli_pause() {
     echo ""
     eli_read_line "  ${BOLD}Нажми Enter для возврата в меню...${NC}" _
+}
+
+check_root() {
+    if [ $(id -u) -ne 0 ]; then
+        echo "This script must be run as root."
+        exit 1
+    fi
+}
+
+check_virt() {
+    if grep "container=" /proc/1/environ > /dev/null 2>&1; then
+        echo "Containers is not supported."
+        exit 1
+    fi
+}
+
+check_os() {
+    . "/etc/os-release"
+    os_id="$ID"
+    os_ver="$VERSION_ID"
+}
+
+validate_os_ver() {
+    case "$OS" in
+        "debian")
+            if [ "$VERSION_ID" -lt 12 ]; then
+                echo "Your version of Debian ${VERSION_ID} is not supported. Please use Debian 12 or later."
+                exit 1
+            fi
+            ;;
+#        "ubuntu")
+#            MAJOR_VERSION="${VERSION_ID%%.*}"
+#            if [ "$MAJOR_VERSION" -lt 20 ]; then
+#                echo "Your version of Ubuntu ${VERSION_ID} is not supported. Please use Ubuntu 20.04 or later."
+#                exit 1
+#            fi
+#            ;;
+        "almalinux")
+            MAJOR_VERSION="${VERSION_ID%%.*}"
+            if [ "$MAJOR_VERSION" -lt 9 ]; then
+                echo "Your version of Alma ${VERSION_ID} is not supported. Please use Alma 9 or later."
+                exit 1
+            fi
+            ;;
+        "rocky")
+            MAJOR_VERSION="${VERSION_ID%%.*}"
+            if [ "$MAJOR_VERSION" -lt 9 ]; then
+                echo "Your version of Rocky ${VERSION_ID} is not supported. Please use Rocky 9 or later."
+                exit 1
+            fi
+            ;;
+        "centos")
+            MAJOR_VERSION="${VERSION_ID%%.*}"
+            if [ "$MAJOR_VERSION" -lt 9 ]; then
+                echo "Your version of CentOS ${VERSION_ID} is not supported. Please use CentOS 9 or later."
+                exit 1
+            fi
+            ;;
+        *)
+            echo "Your Linux distribution is not supported."
+            exit 1
+            ;;
+    esac
 }
 
 # --> ВАЛИДАЦИЯ <--
@@ -420,7 +559,7 @@ book_init() {
         '{
             "_meta":{"version":$ver,"created":$now,"updated":$now,"host":$host,"server_ip":$ip},
             "system":{"os":"","kernel":"","arch":"","main_iface":"","server_ip":$ip,"ssh_port":22,"permit_root_login":""},
-            "awg":{"installed":false,"version":"","setup_dir":"/etc/awg-setup","conf_dir":"/etc/amnezia/amneziawg","interfaces":{}},
+            "awg":{"installed":false,"version":"","setup_dir":"/etc/wg-dashboard/configs/awg","conf_dir":"/etc/amnezia/amneziawg","interfaces":{}},
             "outline":{"installed":false,"server_ip":"","api_port":0,"mgmt_port":0,"keys_port":0,"manager_key_path":"/etc/outline/manager_key.json","api_url":"","installed_at":""},
             "3xui":{"installed":false,"version":"","server_ip":"","panel_port":0,"panel_path":"","panel_user":"","panel_pass":"","db_path":"","installed_at":""},
             "teamspeak":{"installed":false,"version":"","server_ip":"","voice_port":9987,"ft_port":30033,"threads":2,"priv_key":"","db_path":"/opt/teamspeak/tsserver.sqlitedb","installed_at":""},

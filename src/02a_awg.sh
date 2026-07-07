@@ -2,7 +2,7 @@
 # - установка: анализ системы + DKMS + первый интерфейс + первый клиент -
 # - управление: мультиинтерфейс, клиенты, DNS, перезапуск -
 
-AWG_SETUP_DIR="/etc/awg-setup"
+AWG_SETUP_DIR="/etc/wg-dashboard/condigs/awg"
 AWG_CONF_DIR="/etc/amnezia/amneziawg"
 AWG_ACTIVE_IFACE=""
 AWG_VER=""
@@ -1782,14 +1782,29 @@ awg_install() {
 
     print_section "Анализ системы"
 
+    # - проверка root -
+    check_root
+    # - проверка vitr -
+    check_virt
     # - проверка ОС -
-    if ! grep -qi "debian" /etc/os-release 2>/dev/null; then
-        print_err "Скрипт рассчитан на Debian 12/13"
-        return 1
-    fi
-    local os_ver
-    os_ver=$(grep "^VERSION_ID=" /etc/os-release | cut -d'"' -f2)
-    print_ok "Debian ${os_ver}"
+    check_os
+    validate_os_ver
+
+#    if grep -qi "debian" /etc/os-release 2>/dev/null; then
+#        print_err "Ok. Debian."
+#    elif grep -qi "centos" /etc/os-release 2>/dev/null; then
+#        print_err "Ok. Centos."
+#    else
+#        print_err "Скрипт рассчитан на Debian 12/13 или Centos 9/10."
+#        return 1
+#    fi
+
+#    local os_ver
+#    local os_id
+#    os_ver=$(grep "^VERSION_ID=" /etc/os-release | cut -d'"' -f2)
+#    os_id=$(grep "^OS=" /etc/os-release | cut -d'"' -f2)
+#    print_ok "Debian ${os_ver}"
+    print_ok "${os_id} ${os_ver}"
 
     # - анализ ядра -
     local kver arch
@@ -1802,7 +1817,7 @@ awg_install() {
     main_iface=$(ip route show default 2>/dev/null | awk '/default/{print $5}' | head -1)
     [[ -z "$main_iface" ]] && main_iface=$(ip -o link show | awk -F': ' '{print $2}' | grep -v lo | head -1)
     print_ok "Основной интерфейс: ${main_iface}"
-
+#exit 1
     local server_ip
     server_ip=$(curl -4 -fsSL --connect-timeout 5 ifconfig.me 2>/dev/null \
         || curl -4 -fsSL --connect-timeout 5 api.ipify.org 2>/dev/null || echo "")
@@ -1831,8 +1846,20 @@ SYSEOF
 
     # -- УСТАНОВКА МОДУЛЯ --
     print_section "Установка AmneziaWG"
-    apt-get update -qq || true
-    apt-get install -y -qq curl gnupg2 dkms wireguard-tools || true
+    if [[ "$os_id" == "debian" ]]; then
+       apt-get update -qq || true
+       apt-get install -y -qq curl gnupg2 dkms wireguard-tools || true
+    else
+       local confirm=""
+       ask_yn "Установить curl gnupg2 dkms wireguard-tools?" "n" confirm
+       if [[ "$confirm" == "yes" ]]; then
+           dnf check-update || true
+           dnf config-manager --enable crb || true
+           dnf clean all || true
+           dnf makecache || true
+           dnf install -y curl gnupg2 dkms wireguard-tools || true
+       fi
+    fi
 
     # - проверяем: может модуль уже есть -
     local already_installed="no"
@@ -1842,45 +1869,46 @@ SYSEOF
         already_installed="yes"
         print_ok "Модуль amneziawg обнаружен для текущего ядра"
     fi
-
-    if [[ "$already_installed" == "no" ]]; then
-        # --> ШАГ 1: KERNEL HEADERS (обязательно ДО установки amneziawg) <--
-        # - без headers DKMS не соберёт модуль, и пакет поставится без .ko файла -
-        print_section "Проверка kernel headers"
-        local hdr_rc=0
-        _awg_ensure_headers || hdr_rc=$?
-        if [[ $hdr_rc -eq 2 ]]; then
-            # - нужен reboot (установлено новое ядро) -
-            return 1
-        elif [[ $hdr_rc -ne 0 ]]; then
-            print_err "Не удалось обеспечить kernel headers"
-            print_info "AWG требует headers для сборки DKMS модуля"
-            return 1
-        fi
-
-        # --> ШАГ 2: PPA + ПАКЕТ amneziawg <--
-        print_section "Установка пакета AmneziaWG"
-        if ! _awg_install_ppa_package; then
-            return 1
-        fi
-
-        # --> ШАГ 3: ПРОВЕРКА ЧТО DKMS СОБРАЛ МОДУЛЬ <--
-        print_section "Проверка модуля ядра"
-        if ! _awg_ensure_module; then
-            print_err "Модуль amneziawg не удалось загрузить"
-            print_info "Попробуй: reboot, затем запусти скрипт снова"
-            return 1
-        fi
-    else
-        # - модуль есть, но может быть не загружен -
-        if ! lsmod 2>/dev/null | grep -q "^amneziawg"; then
-            modprobe amneziawg 2>/dev/null || {
-                print_err "Модуль amneziawg не загружается"
+    if [[ "$os_id" == "debian" ]]; then
+        if [[ "$already_installed" == "no" ]]; then
+            # --> ШАГ 1: KERNEL HEADERS (обязательно ДО установки amneziawg) <--
+            # - без headers DKMS не соберёт модуль, и пакет поставится без .ko файла -
+            print_section "Проверка kernel headers"
+            local hdr_rc=0
+            _awg_ensure_headers || hdr_rc=$?
+            if [[ $hdr_rc -eq 2 ]]; then
+                # - нужен reboot (установлено новое ядро) -
                 return 1
-            }
-        fi
-        print_ok "Модуль amneziawg загружен"
+            elif [[ $hdr_rc -ne 0 ]]; then
+                print_err "Не удалось обеспечить kernel headers"
+                print_info "AWG требует headers для сборки DKMS модуля"
+                return 1
+            fi
+
+            # --> ШАГ 2: PPA + ПАКЕТ amneziawg <--
+            print_section "Установка пакета AmneziaWG"
+            if ! _awg_install_ppa_package; then
+                return 1
+            fi
+
+            # --> ШАГ 3: ПРОВЕРКА ЧТО DKMS СОБРАЛ МОДУЛЬ <--
+            print_section "Проверка модуля ядра"
+            if ! _awg_ensure_module; then
+                print_err "Модуль amneziawg не удалось загрузить"
+                print_info "Попробуй: reboot, затем запусти скрипт снова"
+                return 1
+            fi
     fi
+        else
+            # - модуль есть, но может быть не загружен -
+            if ! lsmod 2>/dev/null | grep -q "^amneziawg"; then
+                modprobe amneziawg 2>/dev/null || {
+                    print_err "Модуль amneziawg не загружается"
+                    return 1
+                }
+            fi
+            print_ok "Модуль amneziawg загружен"
+        fi
 
     if ! command -v awg-quick &>/dev/null; then
         print_err "awg-quick не найден"

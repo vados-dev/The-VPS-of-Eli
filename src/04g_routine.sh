@@ -161,7 +161,7 @@ _check_svc() {
 }
 
 # --> AWG: ПРОДОЛЖЕНИЕ ПОСЛЕ REBOOT (DKMS FALLBACK) <--
-if [ -f /etc/awg-setup/pending_dkms ]; then
+if [ -f /etc/amnezia/awg-setup/pending_dkms ]; then
     _log "PENDING dkms - пробуем установить AWG модуль"
     # - PPA уже должен быть настроен до reboot -
     apt-get update -qq >/dev/null 2>&1 || true
@@ -176,7 +176,7 @@ if [ -f /etc/awg-setup/pending_dkms ]; then
         _log "FAIL не удалось установить amneziawg"
         FAILS=$(( FAILS + 1 ))
     fi
-    rm -f /etc/awg-setup/pending_dkms
+    rm -f /etc/amnezia/awg-setup/pending_dkms
 fi
 
 # --> AWG ИНТЕРФЕЙСЫ <--

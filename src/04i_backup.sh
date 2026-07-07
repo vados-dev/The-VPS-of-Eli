@@ -47,8 +47,8 @@ backup_create() {
     fi
 
     # - AWG: env, ключи, клиенты -
-    if [[ -d /etc/awg-setup ]]; then
-        _bkp_cp /etc/awg-setup "${tmpdir}/awg-setup" "AWG setup (env, ключи, клиенты)"
+    if [[ -d /etc/amnezia/awg-setup ]]; then
+        _bkp_cp /etc/amnezia/awg-setup "${tmpdir}/awg-setup" "AWG setup (env, ключи, клиенты)"
     fi
     if [[ -d /etc/amnezia/amneziawg ]]; then
         mkdir -p "${tmpdir}/amnezia-conf"
@@ -396,7 +396,7 @@ backup_restore() {
     fi
 
     # - AWG setup -
-    if [[ -d "${root}/awg-setup" ]]; then
+    if [[ -d "${root}/amnezia/awg-setup" ]]; then
         # - останавливаем все AWG интерфейсы -
         for unit in /etc/systemd/system/multi-user.target.wants/awg-quick@*.service; do
             [ -e "$unit" ] || continue
@@ -404,9 +404,9 @@ backup_restore() {
             iface=$(basename "$unit" | sed 's/^awg-quick@//;s/\.service$//')
             systemctl stop "awg-quick@${iface}" 2>/dev/null || true
         done
-        cp -a "${root}/awg-setup" /etc/awg-setup 2>/dev/null || true
-        chmod 700 /etc/awg-setup
-        find /etc/awg-setup -type f -exec chmod 600 {} \;
+        cp -a "${root}/amnezia/awg-setup" /etc/amnezia/awg-setup 2>/dev/null || true
+        chmod 700 /etc/amnezia/awg-setup
+        find /etc/amnezia/awg-setup -type f -exec chmod 600 {} \;
         print_ok "AWG setup (env, ключи, клиенты)"
         restored=$(( restored + 1 ))
     fi
