@@ -274,38 +274,38 @@ check_os() {
 }
 
 validate_os_ver() {
-    case "$OS" in
+    case "$od_id" in
         "debian")
-            if [ "$VERSION_ID" -lt 12 ]; then
-                echo "Your version of Debian ${VERSION_ID} is not supported. Please use Debian 12 or later."
+            if [ "$os_ver" -lt 12 ]; then
+                echo "Your version of Debian ${os_ver} is not supported. Please use Debian 12 or later."
                 exit 1
             fi
             ;;
 #        "ubuntu")
-#            MAJOR_VERSION="${VERSION_ID%%.*}"
+#            MAJOR_VERSION="${os_ver%%.*}"
 #            if [ "$MAJOR_VERSION" -lt 20 ]; then
-#                echo "Your version of Ubuntu ${VERSION_ID} is not supported. Please use Ubuntu 20.04 or later."
+#                echo "Your version of Ubuntu ${os_ver} is not supported. Please use Ubuntu 20.04 or later."
 #                exit 1
 #            fi
 #            ;;
         "almalinux")
-            MAJOR_VERSION="${VERSION_ID%%.*}"
+            MAJOR_VERSION="${os_ver%%.*}"
             if [ "$MAJOR_VERSION" -lt 9 ]; then
-                echo "Your version of Alma ${VERSION_ID} is not supported. Please use Alma 9 or later."
+                echo "Your version of Alma ${os_ver} is not supported. Please use Alma 9 or later."
                 exit 1
             fi
             ;;
         "rocky")
-            MAJOR_VERSION="${VERSION_ID%%.*}"
+            MAJOR_VERSION="${os_ver%%.*}"
             if [ "$MAJOR_VERSION" -lt 9 ]; then
-                echo "Your version of Rocky ${VERSION_ID} is not supported. Please use Rocky 9 or later."
+                echo "Your version of Rocky ${os_ver} is not supported. Please use Rocky 9 or later."
                 exit 1
             fi
             ;;
         "centos")
-            MAJOR_VERSION="${VERSION_ID%%.*}"
+            MAJOR_VERSION="${os_ver%%.*}"
             if [ "$MAJOR_VERSION" -lt 9 ]; then
-                echo "Your version of CentOS ${VERSION_ID} is not supported. Please use CentOS 9 or later."
+                echo "Your version of CentOS ${os_ver} is not supported. Please use CentOS 9 or later."
                 exit 1
             fi
             ;;
