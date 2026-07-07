@@ -96,16 +96,8 @@ line="##############################################################";
 dashes='------------------------------------------------------------------------------'
 equals='============================================================'
 
-# The VPS of Eli v${ELI_VERSION}
-# scrp by ERITEK & Loo1  Claude (Anthropic)
-
-function showdate(){
-   printf '\033[;H' # Move the cursor to the top of the screen
-   date             # Print the date (change with the format you need for the clock)
-   sleep 1          # Sleep (pause) for 1 second
-#   showdate         # Call itself
-}
-#showdate            # Call the function which will display the clock
+eli_brand1="The VPS of Eli v${ELI_VERSION}";
+eli_brand2="scrp by ERITEK & Loo1  Claude (Anthropic)";
 
 # --> ГЛАВНЫЙ ЗАГОЛОВОК <--
 # - выводит баннер The VPS of Eli, очищает экран -
@@ -121,10 +113,10 @@ printf "  ${bnc} ║${bmag}  ██╔══██║██║╚██╔╝█
 printf "  ${bnc} ║${bmag}  ██║  ██║██║ ╚═╝ ██║██║ ╚████║███████╗███████╗██║██║  ██║╚███╔███╔╝╚██████╔╝ ${bnc}║\n";
 printf "  ${bnc} ║${bmag}  ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝╚═╝╚═╝  ╚═╝ ╚══╝╚══╝  ╚═════╝  ${bnc}║\n";
 printf "  ${bnc} ║                                                                              ║\n";
-printf "  ${bnc} ║                  Установка / Удаление AmneziaWG Client                       ║\n";
+printf "  ${bnc} ║                           %s                              ║\n" "$eli_brand1";
+printf "  ${bnc} ║                  %s                   ║\n" "$eli_brand2";
 printf "  ${bnc} ║                                                                              ║\n";
 printf "  ${bnc} ║                                                                              ║\n";
-printf "  ${bnc} ║                             %s                                        ║\n" "$(showdate)";
 printf "  ${bnc} ║                              ${sym_star}${mag} Хорошего дня! ${sym_star}${bnc}                             ║\n";
 printf "  ${bnc} ╚══════════════════════════════════════════════════════════════════════════════╝${nc}\n";
 }
