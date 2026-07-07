@@ -6,8 +6,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+DIR_NAME="${PWD##*/}";
 SRC_DIR="${SCRIPT_DIR}/src"
-OUT_FILE="${SCRIPT_DIR}/the_vps_of_eli.sh"
+OUT_FILE="${SCRIPT_DIR}/${DIR_NAME}.sh"
 
 # - порядок сборки: header -> модули -> меню -> entry -
 FILES=(
