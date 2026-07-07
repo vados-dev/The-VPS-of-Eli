@@ -274,7 +274,7 @@ check_os() {
 }
 
 validate_os_ver() {
-    case "$od_id" in
+    case "$os_id" in
         "debian")
             if [ "$os_ver" -lt 12 ]; then
                 echo "Your version of Debian ${os_ver} is not supported. Please use Debian 12 or later."
