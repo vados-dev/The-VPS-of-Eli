@@ -28,8 +28,8 @@ exit 0
 }
 
 _install() {
-    mkdir -p ${ELI_ROOT}/${ELI_BIN}
-    cp ${cur_dir}/.env/.eli ${HOME_DIR}/
+    ! mkdir -p ${ELI_ROOT}/${ELI_BIN} 2>/dev/null && echo "Error $0\n"; exit 1;
+    cp -r ${cur_dir}/.env/.eli ${HOME_DIR}/
     cat ${cur_dir}/.env/.bashrc >> ${HOME_DIR}/.bashrc
     source ~/.bashrc
     printf "Поздравляю, набор The-VPS-of-ELi установлен!\nНаберите в терминале \"eli\" для получения помощи с командами.\n"
