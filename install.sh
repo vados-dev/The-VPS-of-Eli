@@ -7,9 +7,8 @@ set -euo pipefail
 HOME_DIR=${HOME:-"~/"}
 ELI_ROOT=${HOME_DIR:-"~/.eli"}
 ELI_BIN="bin"
-ENV_FILE=${ELI_ROOT}/.eli-env
-
 cur_dir=$(cd $(dirname "$0") 2>/dev/null && pwd) || SCRIPT_DIR=".";
+ENV_FILE=${cur_dir}/.env/.eli/.eli-env
 
 #######################################
 ### Подключаем переменные окружения ###

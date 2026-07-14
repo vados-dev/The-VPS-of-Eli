@@ -16,7 +16,7 @@ DEFAULT_LOG="$ELI_ROOT/logs/$app_name.log"
 # For colors
 DEBUG_OUT=true
 COLS_NUM=79
-#NO_COLOR=true;
+NO_COLOR=false;
 
 #######################
 ### VPN and AWG Env ###
