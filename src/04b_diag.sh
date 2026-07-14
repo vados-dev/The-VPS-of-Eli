@@ -240,7 +240,7 @@ diag_run() {
             port=$(awg show "$iface" listen-port 2>/dev/null || echo "?")
             peers=$(awg show "$iface" peers 2>/dev/null | wc -l || echo "0")
             mtu=$(ip link show "$iface" 2>/dev/null | grep -oP 'mtu \K[0-9]+' || echo "?")
-            local conf="/etc/amnezia/amneziawg/${iface}.conf"
+            local conf="/etc/VPN/amneziawg/${iface}.conf"
             [[ -f "$conf" ]] && grep -q "TCPMSS" "$conf" && { mss_conf="есть"; _dg_green "MSS clamping в ${iface}.conf"; }
             [[ "$mss_conf" != "есть" ]] && _dg_red "MSS clamping отсутствует в ${iface}.conf|Добавь TCPMSS в PostUp/PostDown"
             local mss_cnt; mss_cnt=$(iptables-save -t mangle 2>/dev/null | grep "TCPMSS" | grep -c "${iface}" || echo "0")

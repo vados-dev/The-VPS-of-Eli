@@ -2,29 +2,24 @@
 # - установка: анализ системы + DKMS + первый интерфейс + первый клиент -
 # - управление: мультиинтерфейс, клиенты, DNS, перезапуск -
 
-AWG_SETUP_DIR="/etc/wg-dashboard/condigs/awg"
-AWG_CONF_DIR="/etc/amnezia/amneziawg"
-AWG_ACTIVE_IFACE=""
-AWG_VER=""
-
 # --> AWG: ВЫБОР ВЕРСИИ ПРОТОКОЛА <--
 # - AWG 1.0 (H+S1/S2) vs AWG 1.5 (+ I1-I5) vs AWG 2.0 (+ ranged H, S3/S4, I1-I5) vs WG -
 # - Keenetic: 1.0 работает на KeeneticOS 4.2+, 1.5/2.0 требуют 5.1+ dev-канал -
 # - P/S хелпа AWG написана идиотом. я АтупеL пока читал -
 _awg_ask_version() {
     echo ""
-    echo -e "  ${BOLD}Версия протокола:${NC}"
-    echo -e "  ${GREEN}1)${NC} AWG 1.0 (classic) - H1-H4 + S1/S2 + Jc/Jmin/Jmax"
-    echo -e "     ${CYAN}Keenetic 4.2+ (стабильная), OpenWrt, все старые клиенты.${NC}"
-    echo -e "  ${GREEN}2)${NC} AWG 1.5 - + I1-I5 (signature chain/CPS)"
-    echo -e "     ${CYAN}Keenetic 5.1+ dev-канал. Маскировка под DNS/STUN/SIP.${NC}"
-    echo -e "  ${GREEN}3)${NC} AWG 2.0 - 1.5 + ranged H + S3/S4"
-    echo -e "     ${CYAN}Keenetic 5.1+ dev-канал, Amnezia 4.8.12.9+. Максимальная обфускация.${NC}"
-    echo -e "  ${GREEN}4)${NC} WireGuard vanilla - без обфускации"
-    echo -e "     ${CYAN}Любой WG клиент. Легко детектится DPI.${NC}"
+    echo -e "  ${bnc}Версия протокола:"
+    echo -e "  ${bnc}1) AWG 1.0 (classic) - H1-H4 + S1/S2 + Jc/Jmin/Jmax"
+    echo -e "     ${bblue}Keenetic 4.2+ (стабильная), OpenWrt, все старые клиенты.${bnc}"
+    echo -e "  ${bnc}2) AWG 1.5 - + I1-I5 (signature chain/CPS)"
+    echo -e "     ${bblue}Keenetic 5.1+ dev-канал. Маскировка под DNS/STUN/SIP.${bnc}"
+    echo -e "  ${bmag}3${bnc}) AWG 2.0 - 1.5 + ranged H + S3/S4"
+    echo -e "     ${bblue}Keenetic 5.1+ dev-канал, Amnezia 4.8.12.9+. Максимальная обфускация.${bnc}"
+    echo -e "  ${bnc}4) WireGuard vanilla - без обфускации"
+    echo -e "     ${bblue}Любой WG клиент. Легко детектится DPI.${NC}"
     while true; do
-        ask_raw "$(printf '  \033[1mВыбор?\033[0m ')" _awg_ver_ch
-        case "$_awg_ver_ch" in
+        ask_raw "$(printf '  \033[1mВыбор?\033[0m ')" _awg_ver_ch "${AWG_VER}"
+        case "${_awg_ver_ch:-3}" in
             1) AWG_VER="1.0"; break ;;
             2) AWG_VER="1.5"
                print_info "AWG 1.5 требует клиент с поддержкой I1-I5"
@@ -37,7 +32,7 @@ _awg_ask_version() {
             4) AWG_VER="wg"
                print_info "Обфускация отключена, все клиенты WireGuard совместимы"
                break ;;
-            *) print_warn "1, 2, 3 или 4" ;;
+            *) break ;;
         esac
     done
 }
@@ -999,9 +994,10 @@ _awg_show_qr() {
 # - аргументы: conf_file (путь к client.conf), AWG_VER и OBF_* должны быть выставлены -
 _awg_keenetic_header() {
     local ver="$1"
-    echo "# ========================================================"
-    echo "# ПОРТИРОВАН ПОД KEENETIC / NDMS"
-    echo "# ========================================================"
+#    echo "# ========================================================"
+    local title="ПОРТИРОВАН ПОД KEENETIC / NDMS"
+#    echo "# ========================================================"
+    eli_banner "$title"
     case "$ver" in
         1.0)
             echo "# Версия AWG: 1.0"
@@ -1025,7 +1021,8 @@ _awg_keenetic_header() {
             echo "# Минимальная прошивка: любая с поддержкой WireGuard"
             ;;
     esac
-    echo "# ========================================================"
+    printf "%s\n" "$dashes"
+#    echo "# ========================================================"
     echo ""
 }
 
@@ -1833,7 +1830,7 @@ awg_install() {
         local cidr
         cidr=$(echo "$line" | awk '{print $4}')
         [[ -n "$cidr" ]] && existing_subnets="${existing_subnets} ${cidr}"
-    done < <(ip -o addr show | grep "inet " | grep -v "lo")
+    done < <(ip -o addr show | grep "inet " | grep -v "host lo")
 
     cat > "${AWG_SETUP_DIR}/system.env" << SYSEOF
 KVER="${kver}"
@@ -1921,16 +1918,16 @@ SYSEOF
 
     local endpoint_ip="${server_ip:-}"
     while true; do
-        echo -e "  ${CYAN}IP по которому клиенты подключаются к серверу.${NC}"
-        echo -e "  ${CYAN}Если определён верно, просто нажми Enter.${NC}"
+        echo -e "  ${bld}IP по которому клиенты подключаются к серверу."
+        echo -e "  ${bld}Если определён верно, просто нажми Enter.${nc}"
         ask "Внешний IP (endpoint)" "$endpoint_ip" endpoint_ip
         validate_ip "$endpoint_ip" && break
         print_err "Некорректный IP"
     done
 
-    local srv_port=1618
+    local srv_port=43034
     while true; do
-        echo -e "  ${CYAN}UDP порт AmneziaWG. Дефолт 1618, можно любой свободный.${NC}"
+        echo -e "  ${bld}UDP порт AmneziaWG. Дефолт $srv_port, можно любой свободный.${nc}"
         ask "UDP порт" "$srv_port" srv_port
         if ! validate_port "$srv_port"; then print_err "Порт 1-65535"; continue; fi
         if ss -H -uln 2>/dev/null | grep -Eq "[:.]${srv_port}[[:space:]]"; then
@@ -1940,13 +1937,24 @@ SYSEOF
     done
     print_ok "Порт: ${srv_port}"
 
+    # - интерфейс туннеля -
+    local tunnel_iface="awg0"
+    while true; do
+        echo -e "  ${bld}Интерфейс AmneziaWG. Дефолт ${bmag}${tunnel_iface}${bnc}.${nc}"
+        ask "Имя интерфейса" "$tunnel_iface" tunnel_iface
+        if ! validate_tunnel_iface "$tunnel_iface"; then print_err "$tunnel_iface"; continue; fi
+        break
+    done
+    print_ok "Интерфейс: ${tunnel_iface}"
+
+
     # - подсеть туннеля -
-    local tunnel_subnet="10.8.0.0/24"
+    local tunnel_subnet="10.10.10.0/24"
     while true; do
         echo ""
         print_info "Подсети на интерфейсах сервера: ${existing_subnets}"
-        echo -e "  ${YELLOW}Убедись что подсеть не совпадает с домашней сетью клиента"
-        echo -e "  (роутер, гостевой WiFi). Иначе VPN работать не будет.${NC}"
+        echo -e "  ${byell}Убедись что подсеть не совпадает с домашней сетью клиента"
+        echo -e "  (роутер, гостевой WiFi). Иначе VPN работать не будет.${nc}"
         ask "Подсеть туннеля" "$tunnel_subnet" tunnel_subnet
         if ! validate_cidr "$tunnel_subnet"; then print_err "Формат: 10.8.0.0/24"; continue; fi
         local tunnel_base
@@ -1981,58 +1989,74 @@ SYSEOF
     print_ok "Подсеть: ${tunnel_subnet}, сервер: ${srv_tunnel_ip}"
 
     # - DNS -
-    local client_dns="8.8.8.8, 1.1.1.1, 9.9.9.9"
+    local client_dns="8.8.4.4" #, 1.1.1.1, 9.9.9.9"
     echo ""
-    echo -e "  ${BOLD}DNS для клиентов:${NC}"
+    echo -e "  ${bnc}DNS для клиентов:"
     if systemctl is-active --quiet unbound 2>/dev/null; then
-        echo -e "  ${GREEN}1)${NC} Unbound: ${srv_tunnel_ip}"
-        echo -e "  ${GREEN}2)${NC} Дефолт: 8.8.8.8, 1.1.1.1, 9.9.9.9"
+        echo -e "  ${bmag}1${bnc}) Unbound: ${srv_tunnel_ip}"
+        echo -e "  ${bnc}2) Предустановленные: ${client_dns}${nc}"
         echo ""
         while true; do
-            ask_raw "$(printf '  \033[1mВыбор?\033[0m ')" dns_ch
-            case "$dns_ch" in
+            ask_raw "$(printf '  \033[1mВыбор? \033[1;35m[1]\033[1m:\033[0m ')" dns_ch ${srv_tunnel_ip}
+            case "${dns_ch:-1}" in
                 1) client_dns="${srv_tunnel_ip}"; break ;;
-                2) break ;;
-                *) print_warn "1 или 2" ;;
+                2) client_dns="${client_dns}"; break ;;
+                *) client_dns="${srv_tunnel_ip}"; break ;;
+            esac
+        done
+    elif systemctl is-active --quiet named 2>/dev/null; then
+        echo -e "  ${bmag}1${bnc}) Named: ${srv_tunnel_ip}"
+        echo -e "  ${bnc}2) Предустановленные: ${client_dns}${nc}"
+        echo ""
+        while true; do
+            ask_raw "$(printf '  \033[1mВыбор? \033[1;35m[1]\033[1m:\033[0m ')" dns_ch ${srv_tunnel_ip}
+            case "${dns_ch:-1}" in
+                1) client_dns="${srv_tunnel_ip}"; break ;;
+                2) client_dns="${client_dns}"; break ;;
+                *) client_dns="${srv_tunnel_ip}"; break ;;
+#                *) print_warn "1 или 2" ;;
             esac
         done
     else
-        print_info "Unbound не запущен, дефолт: ${client_dns}"
+        print_info "Unbound или named не запущены, дефолт: ${client_dns}"
     fi
     print_ok "DNS: ${client_dns}"
 
     # - AllowedIPs -
-    echo ""
-    echo -e "  ${BOLD}Маршрутизация трафика:${NC}"
-    echo -e "  ${GREEN}1)${NC} 0.0.0.0/0 (весь трафик через VPN)"
-    echo -e "  ${GREEN}2)${NC} ${tunnel_subnet} (только туннель)"
-    echo -e "  ${GREEN}3)${NC} Ввести вручную"
-    echo ""
     local allowed="0.0.0.0/0"
+    echo ""
+    echo -e "  ${bnc}Маршрутизация трафика:"
+    echo -e "  ${bmag}1${bnc}) 0.0.0.0/0 (весь трафик через VPN)"
+    echo -e "  ${bnc}2) ${tunnel_subnet} (только туннель)"
+    echo -e "  ${bnc}3) Ввести вручную"${nc}
+    echo ""
     while true; do
-        ask_raw "$(printf '  \033[1mВыбор?\033[0m ')" rt_ch
-        case "$rt_ch" in
+        ask_raw "$(printf '  \033[1mВыбор? \033[1;35m[1]\033[1m:\033[0m ')" rt_ch "$allowed"
+        case "${rt_ch:-1}" in
             1) allowed="0.0.0.0/0"; break ;;
             2) allowed="$tunnel_subnet"; break ;;
-            3) ask "AllowedIPs" "0.0.0.0/0" allowed; break ;;
-            *) print_warn "1, 2 или 3" ;;
+            3) ask "AllowedIPs" $allowed allowed; break ;;
+            *) allowed="0.0.0.0/0"; break ;;
         esac
     done
+    print_ok "AllowedIPs: ${allowed}"
 
     # -- MTU ТУННЕЛЯ --
-    local tunnel_mtu="1320"
     echo ""
-    echo -e "  ${BOLD}MTU туннеля:${NC}"
-    echo -e "  ${GREEN}1)${NC} 1280 - максимальная совместимость (мобильные сети, GTP)"
-    echo -e "  ${GREEN}2)${NC} 1320 - баланс (рекомендуется 'ЭТО БАЗА')"
-    echo -e "  ${GREEN}3)${NC} 1420 - максимальная скорость (чистый Ethernet)"
+    echo -e "  ${bnc}MTU туннеля:"
+    echo -e "  ${bnc}1) 1280 - максимальная совместимость (мобильные сети, GTP)"
+    echo -e "  ${bmag}2${bnc}) 1320 - баланс (рекомендуется 'ЭТО БАЗА')"
+    echo -e "  ${bnc}3) 1420 - максимальная скорость (чистый Ethernet)"
+    echo -e "  ${bnc}4) Ввести вручную"${nc}
+    local tunnel_mtu="1320"
     while true; do
-        ask_raw "$(printf '  \033[1mВыбор?\033[0m [2]: ')" mtu_ch
+        ask_raw "$(printf '  \033[1mВыбор? \033[1;35m[2]\033[1m:\033[0m ')" mtu_ch "$tunnel_mtu"
         case "${mtu_ch:-2}" in
             1) tunnel_mtu="1280"; break ;;
             2) tunnel_mtu="1320"; break ;;
             3) tunnel_mtu="1420"; break ;;
-            *) print_warn "1, 2 или 3" ;;
+            4) ask "MTU" $tunnel_mtu tunnel_mtu; break ;;
+            *) tunnel_mtu="1320"; break ;;
         esac
     done
     print_ok "MTU: ${tunnel_mtu}"
@@ -2061,11 +2085,11 @@ SYSEOF
 
     # -- КЛИЕНТЫ --
     print_section "Клиенты"
-    echo -e "  ${CYAN}Клиент - это одно устройство (телефон, ноутбук, роутер).${NC}"
-    echo -e "  ${CYAN}Для каждого будет создан отдельный конфиг-файл с QR-кодом.${NC}"
-    local client_count=""
+    echo -e "  ${bld}Клиент - это одно устройство (телефон, ноутбук, роутер)."
+    echo -e "  ${bld}Для каждого будет создан отдельный конфиг-файл с QR-кодом."
+    local client_count="1"
     while true; do
-        ask_raw "$(printf '  \033[1mСколько клиентов создать (1-50)?\033[0m ')" client_count
+        ask_raw "$(printf '  \033[1mСколько клиентов создать (1-50)?\033[0m ')" client_count ${client_count}
         [[ "$client_count" =~ ^[0-9]+$ ]] && [[ "$client_count" -ge 1 ]] && [[ "$client_count" -le 50 ]] && break
         print_err "Число от 1 до 50"
     done
@@ -2074,7 +2098,7 @@ SYSEOF
     for (( ci=1; ci<=client_count; ci++ )); do
         local cname=""
         while true; do
-            echo -e "  ${CYAN}Придумай имя для устройства (латиница, цифры, дефис, подчёркивание).${NC}"
+            echo -e "  ${bnc}Придумай имя для устройства (латиница, цифры, дефис, подчёркивание).${NC}"
             ask "Имя клиента #${ci}" "client${ci}" cname
             if ! validate_name "$cname"; then print_err "Буквы, цифры, дефис, подчёркивание"; continue; fi
             local dup=false
@@ -2087,7 +2111,7 @@ SYSEOF
     # -- ГЕНЕРАЦИЯ КЛЮЧЕЙ И КОНФИГОВ --
     print_section "Генерация ключей и конфигов"
 
-    local iface="awg0"
+    local iface="${tunnel_iface}"
     local keys_dir
     keys_dir=$(awg_iface_keys "$iface")
     local clients_dir
@@ -2098,7 +2122,7 @@ SYSEOF
     mkdir -p "$keys_dir" "$clients_dir" "$AWG_CONF_DIR"
     chmod 700 "$keys_dir" "$clients_dir"
 
-    wg genkey | tee "${keys_dir}/server.key" | wg pubkey > "${keys_dir}/server.pub"
+    awg genkey | tee "${keys_dir}/server.key" | awg pubkey > "${keys_dir}/server.pub"
     local srv_priv srv_pub
     srv_priv=$(cat "${keys_dir}/server.key")
     srv_pub=$(cat "${keys_dir}/server.pub")
@@ -2121,11 +2145,12 @@ CONFEOF
     for cname in "${client_names[@]}"; do
         local cdir="${clients_dir}/${cname}"
         mkdir -p "$cdir"; chmod 700 "$cdir"
-        wg genkey | tee "${cdir}/private.key" | wg pubkey > "${cdir}/public.key"
-        chmod 600 "${cdir}/private.key" "${cdir}/public.key"
-        local cli_priv cli_pub cli_ip
+        awg genkey | tee "${cdir}/private.key" | awg pubkey > "${cdir}/public.key" | awg genpsk > "${cdir}/psk.key"
+        chmod 600 "${cdir}/private.key" "${cdir}/public.key" "${cdir}/psk.key"
+        local cli_priv cli_pub cli_psk cli_ip
         cli_priv=$(cat "${cdir}/private.key")
         cli_pub=$(cat "${cdir}/public.key")
+        cli_psk=$(cat "${cdir}/psk.key")
         cli_ip=$(awg_next_free_ip "$iface" "$tunnel_base")
         if [[ -z "$cli_ip" ]]; then
             print_err "Нет свободных IP для ${cname}"; continue
@@ -2137,6 +2162,7 @@ CONFEOF
 # ${cname}
 PublicKey = ${cli_pub}
 AllowedIPs = ${cli_ip}/32
+PresharedKey = ${cli_psk}
 PEEREOF
 
         cat > "${cdir}/client.conf" << CLIEOF
@@ -2152,6 +2178,7 @@ $(_awg_obf_conf_lines)
 PublicKey = ${srv_pub}
 Endpoint = ${endpoint_ip}:${srv_port}
 AllowedIPs = ${allowed}
+PresharedKey = ${cli_psk}
 PersistentKeepalive = 25
 CLIEOF
         chmod 600 "${cdir}/client.conf"
@@ -2202,11 +2229,15 @@ LEGEOF
     fi
     print_ok "IP forwarding включён"
 
+    # - добавить конфиг в awg-qiuck -
+    print_section "Прописываем конфиг $conf AmneziaWG в awg-quick"
+    awg-quick up $conf
+#    sleep 15
     # - запуск -
     print_section "Запуск AmneziaWG"
     systemctl enable "awg-quick@${iface}"
     systemctl restart "awg-quick@${iface}"
-    sleep 2
+    sleep 4
     if systemctl is-active --quiet "awg-quick@${iface}"; then
         print_ok "Сервис awg-quick@${iface} запущен"
     else
@@ -2215,10 +2246,10 @@ LEGEOF
     fi
 
     # - UFW -
-    if command -v ufw &>/dev/null; then
-        ufw allow "${srv_port}/udp" comment "AmneziaWG ${iface}" 2>/dev/null || true
-        print_ok "UFW: разрешён ${srv_port}/udp"
-    fi
+#    if command -v ufw &>/dev/null; then
+#        ufw allow "${srv_port}/udp" comment "AmneziaWG ${iface}" 2>/dev/null || true
+#        print_ok "UFW: разрешён ${srv_port}/udp"
+#    fi
 
     # - book -
     local awg_ver
@@ -2277,7 +2308,7 @@ LEGEOF
 
 awg_show_status() {
     print_section "Статус AmneziaWG"
-    awg_migrate_legacy
+#    awg_migrate_legacy
     local ifaces
     ifaces=$(awg_get_iface_list)
     if [[ -z "$ifaces" ]]; then print_warn "Нет настроенных интерфейсов"; return 0; fi
@@ -2351,7 +2382,7 @@ awg_show_status() {
 
 awg_create_iface() {
     print_section "Создать новый интерфейс"
-    awg_migrate_legacy
+#    awg_migrate_legacy
     local existing_ifaces
     existing_ifaces=$(awg_get_iface_list)
 
@@ -2372,6 +2403,9 @@ awg_create_iface() {
         fi
         if [[ -f "$(awg_iface_env "$iface")" ]]; then
             print_err "Интерфейс '${iface}' уже существует"; continue
+        fi
+        if awg show 2>/dev/null | grep -q "interface: ${iface}"; then
+            print_err "'awg show ${iface}' показал, что такой интерфейс есть!"; continue
         fi
         break
     done
@@ -2403,7 +2437,7 @@ awg_create_iface() {
         print_err "Некорректный IP"
     done
 
-    local port=1618
+    local port=43034
     while true; do
         echo -e "  ${CYAN}UDP порт для этого туннеля (1-65535). Должен быть свободен и не совпадать с другими.${NC}"
         ask "UDP порт" "$port" port
@@ -2460,11 +2494,19 @@ awg_create_iface() {
     local srv_tunnel_ip="${tunnel_base}.1"
 
     # - DNS -
-    local dns="8.8.8.8, 1.1.1.1, 9.9.9.9"
+    local dns="8.8.4.4"
     if systemctl is-active --quiet unbound 2>/dev/null; then
         echo ""
         echo -e "  ${GREEN}1)${NC} Unbound: ${srv_tunnel_ip}"
-        echo -e "  ${GREEN}2)${NC} Дефолт: 8.8.8.8, 1.1.1.1, 9.9.9.9"
+        echo -e "  ${GREEN}2)${NC} Дефолт: 8.8.4.4"
+        while true; do
+            ask_raw "$(printf '  \033[1mВыбор?\033[0m ')" dns_ch
+            case "$dns_ch" in 1) dns="${srv_tunnel_ip}"; break ;; 2) break ;; *) print_warn "1 или 2" ;; esac
+        done
+    elif systemctl is-active --quiet named 2>/dev/null; then
+        echo ""
+        echo -e "  ${GREEN}1)${NC} Named: ${srv_tunnel_ip}"
+        echo -e "  ${GREEN}2)${NC} Дефолт: 8.8.4.4"
         while true; do
             ask_raw "$(printf '  \033[1mВыбор?\033[0m ')" dns_ch
             case "$dns_ch" in 1) dns="${srv_tunnel_ip}"; break ;; 2) break ;; *) print_warn "1 или 2" ;; esac
@@ -2520,7 +2562,7 @@ awg_create_iface() {
     local keys_dir
     keys_dir=$(awg_iface_keys "$iface")
     mkdir -p "$keys_dir"; chmod 700 "$keys_dir"
-    wg genkey | tee "${keys_dir}/server.key" | wg pubkey > "${keys_dir}/server.pub"
+    awg genkey | tee "${keys_dir}/server.key" | awg pubkey > "${keys_dir}/server.pub"
     chmod 600 "${keys_dir}/server.key" "${keys_dir}/server.pub"
     local srv_priv
     srv_priv=$(cat "${keys_dir}/server.key")
@@ -2789,16 +2831,16 @@ awg_add_client() {
     local change_allowed=""
     ask_yn "Изменить AllowedIPs для этого клиента?" "n" change_allowed
     if [[ "$change_allowed" == "yes" ]]; then
-        echo -e "  ${GREEN}1)${NC} 0.0.0.0/0"
-        echo -e "  ${GREEN}2)${NC} ${TUNNEL_SUBNET}"
-        echo -e "  ${GREEN}3)${NC} Вручную"
+        echo -e "  ${bmag}1${bnc}) 0.0.0.0/0"
+        echo -e "  ${bld}2) ${TUNNEL_SUBNET}"
+        echo -e "  ${bld}3) Вручную ${nc}"
         while true; do
-            ask_raw "$(printf '  \033[1mВыбор?\033[0m ')" rc
-            case "$rc" in
+            ask_raw "$(printf '  \033[1mВыбор? \033[1;35m[1]\033[1m:\033[0m ')" rc
+            case "$(rc:-1)" in
                 1) client_allowed="0.0.0.0/0"; break ;;
                 2) client_allowed="$TUNNEL_SUBNET"; break ;;
                 3) ask "AllowedIPs" "$client_allowed" client_allowed; break ;;
-                *) print_warn "1, 2 или 3" ;;
+                *) client_allowed="0.0.0.0/0"; break ;;
             esac
         done
     fi
@@ -2806,11 +2848,12 @@ awg_add_client() {
     local cdir
     cdir="$(awg_iface_clients "$iface")/${name}"
     mkdir -p "$cdir"; chmod 700 "$cdir"
-    wg genkey | tee "${cdir}/private.key" | wg pubkey > "${cdir}/public.key"
-    chmod 600 "${cdir}/private.key" "${cdir}/public.key"
-    local cli_priv cli_pub
+    awg genkey | tee "${cdir}/private.key" | awg pubkey > "${cdir}/public.key" | awg genpsk > "${cdir}/psk.key"
+    chmod 600 "${cdir}/private.key" "${cdir}/public.key" "${cdir}/psk.key"
+    local cli_priv cli_pub cli_psk
     cli_priv=$(cat "${cdir}/private.key")
     cli_pub=$(cat "${cdir}/public.key")
+    cli_psk=$(cat "${cdir}/psk.key")
 
     local conf
     conf=$(awg_iface_conf "$iface")
@@ -2820,6 +2863,7 @@ awg_add_client() {
 # ${name}
 PublicKey = ${cli_pub}
 AllowedIPs = ${client_ip}/32
+PresharedKey = ${cli_psk}
 PEEREOF
 
     cat > "${cdir}/client.conf" << CLIEOF

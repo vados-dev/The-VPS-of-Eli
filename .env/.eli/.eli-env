@@ -1,0 +1,141 @@
+###################
+### Переменные: ###
+###################
+#cur_dir=$(cd $(dirname "$0") 2>/dev/null && pwd) || cur_dir=".";
+dir_name="${PWD##*/}";
+script_name_ext="${0##*/}";
+script_name="${script_name_ext%.*}";
+app_file=${script_name_ext};
+app_name=${1:-$script_name};
+pr_name=${2:-$app_name};
+
+# Log
+SAVE_LOG=false
+DEFAULT_LOG="$ELI_ROOT/logs/$app_name.log"
+
+# For colors
+DEBUG_OUT=true
+COLS_NUM=79
+#NO_COLOR=true;
+
+#######################
+### VPN and AWG Env ###
+#######################
+VPN_ROOT="/etc"
+VPN_HOME="VPN"
+VPN_HELP="helpers"
+VPN_CONF="configs"
+
+AWG_CONF="${VPN_CONF}/amneziawg"
+AWG_SETUP="${VPN_HELP}/awg-setup"
+AWG_SCRIPTS="${VPN_HELP}/awg-scripts"
+
+AWG_HOME_DIR=${VPN_ROOT:-"/etc"}/${VPN_HOME:-"amnezia"}
+
+AWG_CONF_DIR=${AWG_HOME_DIR:-"/etc/amnezia"}/${AWG_CONF}
+AWG_SETUP_DIR=${AWG_HOME_DIR:-"/etc/amnezia"}/${AWG_SETUP}
+AWG_SCRIPTS_DIR=${AWG_HOME_DIR:-"/etc/amnezia"}/${AWG_SCRIPTS}
+
+AWG_ACTIVE_IFACE=""
+AWG_VER="2.0"
+AWG_DNS="8.8.4.4"
+
+##########################################
+### Цвета и основные заготовки вывода: ###
+##########################################
+# ┌───────┬────────────────┬─────────────────┐   ┌───────┬─────────────────┬───────┐
+# │ Fg/Bg │ Color          │ Octal           │   │ Code  │ Style           │ Octal │
+# ├───────┼────────────────┼─────────────────┤   ├───────┼─────────────────┼───────┤
+# │  K/k  │ Black          │ \e[ + 3/4  + 0m │   │  s/S  │ Bold (strong)   │ \e[1m │
+# │  R/r  │ Red            │ \e[ + 3/4  + 1m │   │  d/D  │ Dim             │ \e[2m │
+# │  G/g  │ Green          │ \e[ + 3/4  + 2m │   │  i/I  │ Italic          │ \e[3m │
+# │  Y/y  │ Yellow         │ \e[ + 3/4  + 3m │   │  u/U  │ Underline       │ \e[4m │
+# │  B/b  │ Blue           │ \e[ + 3/4  + 4m │   │  f/F  │ Blink (flash)   │ \e[5m │
+# │  M/m  │ Magenta        │ \e[ + 3/4  + 5m │   │  n/N  │ Negative        │ \e[7m │
+# │  C/c  │ Cyan           │ \e[ + 3/4  + 6m │   │  h/H  │ Hidden          │ \e[8m │
+# │  W/w  │ White          │ \e[ + 3/4  + 7m │   │  t/T  │ Strikethrough   │ \e[9m │
+# ├───────┴────────────────┴─────────────────┤   ├───────┼─────────────────┼───────┤
+# │  High intensity        │ \e[ + 9/10 + *m │   │   0   │ Reset           │ \e[0m │
+# └────────────────────────┴─────────────────┘   └───────┴─────────────────┴───────┘
+#                                                 Uppercase = Reset a style: \e[2*m
+
+_c() { [ $# == 0 ] && printf "\e[0m" || printf "$1" | sed 's/\(.\)/\1;/g;s/\([SDIUFNHT]\)/2\1/g;s/\([KRGYBMCW]\)/3\1/g;s/\([krgybmcw]\)/4\1/g;y/SDIUFNHTsdiufnhtKRGYBMCWkrgybmcw/12345789123457890123456701234567/;s/^\(.*\);$/\\e[\1m/g'; }
+
+nc=$(_c 0); bld=$(_c s); sma=$(_c d); und=$(_c u); blink=$(_c f); neg=$(_c n); strt=$(_c t);
+bnc=$(_c 0s);
+
+#_nc='\033[0;'; _bld='\033[1;'; _sma='\033[2;'; _und='\033[4;'; _blink='\033[5;'; _neg='\033[7;'; _strt='\033[9;';
+#nc='\033[0m'; bld='\033[1m'; sma='\033[2m'; und='\033[4m'; blink='\033[5m'; neg='\033[7m'; strt='\033[9m';
+#_c() {
+#printf '\033[0m';
+#[ "$#" -lt 2 ] && printf $_nc$1m;
+#[ "$2" == "b" ] || [ "$2" == "S" ] && printf $_bld$1m;
+#[ "$2" == "s" ] && printf ${_sma}$1m; [ "$2" == "bs" ] && printf ${_bld}$1m${sma};
+#[ "$2" == "u" ] && printf ${_und}$1m; [ "$2" == "bu" ] && printf ${_bld}$1m${und};
+#[ "$2" == "bl" ] && printf ${_blink}$1m; [ "$2" == "bbl" ] && printf ${_bld}$1m${blink};
+#[ "$2" == "n" ] && printf ${_neg}$1m; [ "$2" == "bn" ] && printf ${_bld}$1m${neg};
+#[ "$2" == "st" ] && printf ${_strt}$1m; [ "$2" == "bst" ] && printf ${_bld}$1m${strt};
+#}
+
+if ! [ $NO_COLOR ]; then
+    blk=$(_c K); red=$(_c R); grn=$(_c G); yel=$(_c Y); blu=$(_c Bkh); mag=$(_c Mkh); cy=$(_c Ckh); wh=$(_c Wkh);
+    blkb=$(_c Wk); redb=$(_c Wrs); grnb=$(_c Gfn); yelb=$(_c Byf); blub=$(_c Wbs); magb=$(_c Wms); cyb=$(_c Cfn); whb=$(_c Kwf);
+    bblk=$(_c Ks); bred=$(_c Rs); bgrn=$(_c Gs); byel=$(_c Ys); bblu=$(_c Bks); bmag=$(_c Mks); bcy=$(_c Cks); bwh=$(_c Wks);
+#    sblk=$(_c 30 s); sred=$(_c 31 s); sgrn=$(_c 32 s); syel=$(_c 33 s); sblu=$(_c 34 s); smag=$(_c 35 s); scy=$(_c 36 s); swh=$(_c 37 s);
+#    bsblk=$(_c 30 bs); bsred=$(_c 31 bs); bsgrn=$(_c 32 bs); bsyel=$(_c 33 bs); bsblu=$(_c 34 bs); bsmag=$(_c 35 bs); bscy=$(_c 36 bs); bswh=$(_c 37 bs);
+#    sblk=$(_c 30 s); sred=$(_c 31 s); sgrn=$(_c 32 s); syel=$(_c 33 s); sblu=$(_c 34 s); smag=$(_c 35 s); ucy=$(_c 36 s); uwh=$(_c 37 s);
+#    ublk=$(_c 30 u); ured=$(_c 31 u); ugrn=$(_c 32 u); uyel=$(_c 33 u); ublu=$(_c 34 u); umag=$(_c 35 u); ucy=$(_c 36 u); uwh=$(_c 37 u);
+#    bublk=$(_c 30 bu); bured=$(_c 31 bu); bugrn=$(_c 32 bu); buyel=$(_c 33 bu); bublu=$(_c 34 bu); bumag=$(_c 35 bu); bucy=$(_c 36 bu); buwh=$(_c 37 bu);
+#    blblk=$(_c 30 bl); blblu=$(_c 34 bl); blwh=$(_c 37 bl);
+#    bblred=$(_c 31 bbl); bblgrn=$(_c 32 bbl); bblyel=$(_c 33 bbl); bblmag=$(_c 35 bbl); bblcy=$(_c 36 bbl); bblwh=$(_c 37 bbl);
+#    nred=$(_c 31 n); ngrn=$(_c 32 n); nyel=$(_c 33 n); nblu=$(_c 34 n); nmag=$(_c 35 n); ncy=$(_c 36 n); nwh=$(_c 37 n);
+#    bnblk=$(_c 30 bn); bnwh=$(_c 37 bn);
+#    stblk=$(_c 30 st); stred=$(_c 31 st); stgrn=$(_c 32 st); styel=$(_c 33 st); stblu=$(_c 34 st); stmag=$(_c 35 st); stcy=$(_c 36 st); stwh=$(_c 37 st);
+#    bstblk=$(_c 30 bst); bstred=$(_c 31 bst); bstgrn=$(_c 32 bst); bstyel=$(_c 33 bst); bstblu=$(_c 34 bst); bstmag=$(_c 35 bst); bstcy=$(_c 36 bst); bstwh=$(_c 37 bst);
+    rev=$(tput rev);
+    sym_ok=$(printf "${grn}%s${nc}" ✅); sym_err=$(printf "${red}%s${nc}" ❌); install=$(printf "${bnc}%s${nc}" 💿);
+    sym_info=$(printf "${bblu}%s${nc}" 📋);sym_warn=$(printf "${byel}%s${nc}" "⚠⚠"); sym_dbg=$(printf "${bwh}%s${nc}" 🔧); sym_star=$(printf "${byel}%s${nc}" ✨);
+else
+    neg=''; blink=''; rev='';
+    blk=''; red=''; grn=''; yel=''; blu=''; mag=''; cy=''; wh='';
+    bblk=''; bred=''; bgrn=''; byel=''; bblu=''; bmag=''; bcy=''; bwh='';
+    sym_ok='✅'; sym_err='❌'; install='💿'; sym_info='📋'; sym_warn='⚠⚠'; sym_dbg='🔧'; sym_star='✨';
+fi
+
+toend=$(tput hpa $(tput cols))$(tput cub 6);
+_resh=$(printf '\x23');
+
+app_title() {
+    local name=${pr_name:-$dir_name};
+    printf " ${bnc}[${nc}${bmag}${name}${bnc}]${nc}";
+}
+printstr() {
+    local _head=$(app_title);
+    if [[ "$#" == 4 ]]; then
+       printf "$_head %s $2${bnc}$1${byel} $3\n${nc}" "$4";
+    elif [[ "$#" == 3 ]]; then
+       printf "$_head %s ${bnc}$1${byel} $2\n${nc}" "$3";
+    elif [[ "$#" == 2 ]]; then
+       printf "$_head %s ${bnc}$1\n${nc}" "$2";
+    else
+       printf "$_head ${bnc}$1\n${nc}";
+    fi
+}
+
+stars=${byel}'✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨'${nc};
+line='##############################################################';
+dashes='───────────────────────────────────────────────────────────────────────────────'
+equals='═══════════════════════════════════════════════════════════════════════════════'
+spaces='                                                                               '
+
+# --> ФУНКЦИИ ВЫВОДА <--
+# - единый набор для всего скрипта -
+print_ok()      { printstr "$1 %s\n" "$sym_ok"; }
+print_warn()    { printstr "$1 %s\n" "$sym_warn"; }
+print_err()     { printstr "${bred}$1${nc} %s\n" "$sym_err"; }
+print_info()    { printstr "$1 %s\n" "$sym_star"; }
+print_section() {
+    printf "\n  ${bmag} ${resh}${bnc}$1${nc}\n"
+    printf "   ${bmag}${dashes}${nc}\n";
+}
+

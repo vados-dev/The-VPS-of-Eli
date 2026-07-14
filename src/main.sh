@@ -24,22 +24,26 @@ menu_vpn() {
     MTProto (Telegram), SOCKS5 (универсальный), Hysteria 2 (быстрый UDP),
     Signal TLS Proxy (для Signal мессенджера)"
 
-        echo -e "  ${GREEN}1)${NC} AmneziaWG"
-        echo -e "  ${GREEN}2)${NC} 3X-UI"
-        echo -e "  ${GREEN}3)${NC} Outline"
-        echo -e "  ${GREEN}4)${NC} Прокси мессенджеров"
-        echo ""
-        echo -e "  ${GREEN}0)${NC} Назад"
-        echo ""
+        printf "${bnc}    %s${bnc}\n" "$(align::left $COLS_NUM "$MENUSTR")"
+        printf "   \e[44m╔%s╗${bnc}\n" "$(align::left $COLS_NUM "$equals")"
+        printf "   \e[44m║${blub}%s║${bnc}\n" "$(align::left $COLS_NUM " 1  -  AmneziaWG")"
+        printf "   \e[44m║${blub}%s║${bnc}\n" "$(align::left $COLS_NUM " 2  -  3X-UI")"
+        printf "   \e[44m║${blub}%s║${bnc}\n" "$(align::left $COLS_NUM " 3  -  Outline")"
+        printf "   \e[44m║${blub}%s║${bnc}\n" "$(align::left $COLS_NUM " 4  -  Прокси мессенджеров")"
+        printf "   \e[44m║${und}%s║${bnc}\n" "$(align::right $COLS_NUM " ")"
+        printf "   \e[45m║${magb}%s║${bnc}\n" "$(align::center $COLS_NUM " ")"
+        printf "   \e[45m║${magb}%s║${bnc}\n" "$(align::left $COLS_NUM " 0  -  Назад")"
+        printf "   \e[41m║${redb}%s║${bnc}\n" "$(align::left $COLS_NUM " q  -  Выход")"
+        printf "   \e[41m╚%s╝\n${bnc}" "$(align::left $((${COLS_NUM})) "$equals")"
         eli_read_choice choice
-
+        printf "${bnc}"
         case "$choice" in
             1) menu_awg       || { print_warn "Ошибка в разделе AmneziaWG"; eli_pause; } ;;
             2) menu_xui       || { print_warn "Ошибка в разделе 3X-UI"; eli_pause; } ;;
             3) menu_otl       || { print_warn "Ошибка в разделе Outline"; eli_pause; } ;;
             4) menu_proxy     || { print_warn "Ошибка в разделе Прокси"; eli_pause; } ;;
             0) return 0 ;;
-            *) print_warn "Введите число от 0 до 4"; eli_pause ;;
+            q) printf "\n    ${bred}Выход.\n${nc}"; rm -f $LOCKFILE; exit 0 ;;
         esac
     done
 }
@@ -65,20 +69,32 @@ menu_awg() {
   Тест обфускации снимает tcpdump и проверяет применяются ли S1/S2 padding,
     Jc junk-пакеты, H1-H4 mangle и I1 signature chain на реальном handshake."
 
-        echo -e "  ${GREEN}1)${NC} Установка AmneziaWG"
-        echo -e "  ${GREEN}2)${NC} Управление AmneziaWG"
-        echo -e "  ${GREEN}3)${NC} Тест обфускации"
-        echo ""
-        echo -e "  ${GREEN}0)${NC} Назад"
-        echo ""
+#        printf "%-${COLS_NUM}s \n${nc}" "${bnc}   ${und}$MENUSTR"
+#        printf "%-${COLS_NUM}s \n${nc}" "  ${blub} 1  -  Установка AmneziaWG"
+        printf "${bnc}    ${und}%s${bnc}\n" "$(align::center $COLS_NUM "$MENUSTR")"
+        printf "   ┌%s┐\n" "$(align::left $COLS_NUM "$dashes")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 1  -  Установка AmneziaWG")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 2  -  Упрфвление AmneziaWG")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 3  -  Тест обфускации")"
+        printf "   ├%s${bnc}┤\n" "$(align::left $COLS_NUM "$dashes")"
+        printf "   ├%s${bnc}┤\n" "$(align::left $COLS_NUM "$dashes")"
+        printf "   │${magb}%s${bnc}│\n" "$(align::left $COLS_NUM " 0  -  Назад")"
+        printf "   │${redb}%s${bnc}│\n" "$(align::left $COLS_NUM " q  -  Выход")"
+        printf "   └%s┘\n" "$(align::left $((${COLS_NUM})) "$dashes")"
+#        printf "\n${bnc}    ${blub} 2  -  Управление AmneziaWG                                                               \n${nc}"
+#        printf "    ${blub}${und} 3  -  Тест обфускации                                                               \n${nc}"
+#        printf "    ${bnc}${und}                                                                               \n${nc}"
+#        printf "    ${magb} 0  -  Назад                                                                   \n${nc}"
+#        printf "    ${und}${redb} q  -  Выход                                                                   \n${bnc}"
         eli_read_choice choice
-
+        printf "${nc}"
         case "$choice" in
             1) awg_install    || { print_warn "Ошибка при установке AWG"; eli_pause; } ;;
             2) awg_manage     || { print_warn "Ошибка в управлении AWG"; eli_pause; } ;;
             3) awg_test_obf   || { print_warn "Ошибка в тесте обфускации"; }; eli_pause ;;
             0) return 0 ;;
-            *) print_warn "Введите число от 0 до 3"; eli_pause ;;
+            q) printf "\n    ${bred}Выход.\n${nc}"; rm -f $LOCKFILE; exit 0 ;;
+            *) print_warn "Введите число от 0 до 3 или q для выхода"; printf "${nc}"; eli_pause ;;
         esac
     done
 }
@@ -860,27 +876,30 @@ menu_tgbot() {
 # --> ТОЧКА ВХОДА: ГЛАВНОЕ МЕНЮ <--
 eli_main() {
     eli_header
-
-    while true; do
-        echo ""
-        echo -e "  ${GREEN}1)${NC} Старт (первичная настройка VPS)"
-        echo -e "  ${GREEN}2)${NC} VPN и прокси (AmneziaWG, 3X-UI, Outline, MTProto, Signal)"
-        echo -e "  ${GREEN}3)${NC} Связь (TeamSpeak, Mumble)"
-        echo -e "  ${GREEN}4)${NC} Обслуживание и диагностика"
-        echo ""
-        echo -e "  ${GREEN}0)${NC} Выход"
-        echo ""
+      while true; do
+        printf "${bnc}    %s${bnc}\n" "$(align::left $COLS_NUM "Меню главного раздела:")"
+        printf "   \e[44m╔%s╗${bnc}\n" "$(align::left $COLS_NUM "$equals")"
+        printf "   \e[44m║${blub}%s║${bnc}\n" "$(align::left $COLS_NUM " 1  -  VPN и прокси (AmneziaWG, 3X-UI, Outline, MTProto, Signal)")"
+        printf "   \e[44m║${blub}%s║${bnc}\n" "$(align::left $COLS_NUM " 2  -  Обслуживание и диагностика")"
+        printf "   \e[44m║${blub}%s║${bnc}\n" "$(align::left $COLS_NUM " 3  -  Связь (TeamSpeak, Mumble)")"
+        printf "   \e[44m║${blub}%s║${bnc}\n" "$(align::left $COLS_NUM " 4  -  Старт (первичная настройка VPS)")"
+        printf "   \e[44m║${und}%s║${bnc}\n" "$(align::right $COLS_NUM " ")"
+        printf "   \e[45m║${magb}%s║${bnc}\n" "$(align::center $COLS_NUM " ")"
+        printf "   \e[45m║${magb}%s║${bnc}\n" "$(align::left $COLS_NUM " 0  -  Назад")"
+        printf "   \e[41m║${redb}%s║${bnc}\n" "$(align::left $COLS_NUM " q  -  Выход")"
+        printf "   \e[41m╚%s╝\n${bnc}" "$(align::left $((${COLS_NUM})) "$equals")"
         eli_read_choice choice
+        printf "${bnc}"
 
         case "$choice" in
-            1) boot_run   || { print_warn "Ошибка в разделе Старт"; eli_pause; } ;;
-            2) menu_vpn   || { print_warn "Ошибка в разделе VPN"; eli_pause; } ;;
+            1) menu_vpn   || { print_warn "Ошибка в разделе VPN"; eli_pause; } ;;
+            2) menu_maint || { print_warn "Ошибка в разделе Обслуживание"; eli_pause; } ;;
             3) menu_comms || { print_warn "Ошибка в разделе Связь"; eli_pause; } ;;
-            4) menu_maint || { print_warn "Ошибка в разделе Обслуживание"; eli_pause; } ;;
-            0) echo ""; echo "  Выход."; echo ""; exit 0 ;;
+            4) boot_run   || { print_warn "Ошибка в разделе Старт"; eli_pause; } ;;
+            0) echo ""; echo "  Выход."; echo ""; rm -f $LOCKFILE; exit 0 ;;
+            q) printf "\n    ${bred}Выход.\n${nc}"; rm -f $LOCKFILE; exit 0 ;;
             *) print_warn "Введите число от 0 до 4"; eli_pause ;;
         esac
-
         eli_header
     done
 }

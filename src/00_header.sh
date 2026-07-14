@@ -27,80 +27,63 @@ ELI_CODENAME="The VPS of Eli" # - используется в баннере и 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m';
 CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m';
 
+#set -o allexport
+#export $(grep -v '^#' .env | xargs)
+#set +o allexport
+. .eli-env
 
-# --> ФУНКЦИИ ВЫВОДА <--
-# - единый набор для всего скрипта -
-print_ok()      { echo -e "  ${GREEN}[-OK-]${NC} $1"; }
-print_warn()    { echo -e "  ${YELLOW}[!!!]${NC}  $1"; }
-print_err()     { echo -e "  ${RED}[xXx]${NC} $1"; }
-print_info()    { echo -e "  ${CYAN}*${NC} $1"; }
-print_section() {
-    echo ""
-    echo -e "${CYAN}${BOLD}>> $1${NC}"
-    echo -e "${CYAN}$(printf -- '-%.0s' {1..54})${NC}"
+################################
+### Функция заполнения строк ###
+################################
+#"★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★"
+#align_left() {
+#local menu_str="$1" local len=$(("$LINES_LEN-${#menu_str}")) # line=${3:-$spaces}; #echo "$len"; printf "$menu_str %-${len}s \n" #printf "%s%-${len}s" "$text" # "${line:${#string}}"; echo ; # "${3:${#var}}"
+#}
+align::left() {
+  local -i width=${1:?}
+  local -- str=${2:?}
+  local -i length=$((${#str} > width ? width : ${#str}))
+  local -i pad_right=$((width - length))
+  printf '%s%*s' "${str:0:length}" $pad_right ''
+}
+align::right() {
+  local -i width=${1:?}
+  local -- str=${2:?}
+  local -i length=$((${#str} > width ? width : ${#str}))
+  local -i offset=$((${#str} - length))
+  local -i pad_left=$((width - length))
+  printf '%*s%s' $pad_left '' "${str:offset:length}"
+}
+align::center() {
+  local -i width=${1:?}
+  local -- str=${2:?}
+  local -i length=$((${#str} > width ? width : ${#str}))
+  local -i offset=$(((${#str} - length) / 2))
+  local -i pad_left=$(((width - length) / 2))
+  local -i pad_right=$((width - length - pad_left))
+  printf '%*s%s%*s' $pad_left '' "${str:offset:length}" $pad_right ''
 }
 
-###################
-### Переменные: ###
-###################
-cur_dir=$(cd $(dirname "$0") 2>/dev/null && pwd) || cur_dir=".";
-dir_name="${PWD##*/}";
-script_name_ext="${0##*/}";
-script_name="${script_name_ext%.*}";
-app_file=${script_name_ext};
-app_name=${1:-$script_name};
-pr_name=${2:-$app_name};
-
-DEBUG_OUT=true
-SAVE_LOG=false
-DEFAULT_LOG="$cur_dir/logs/$app_name.log";
-
-NO_COLOR=false;
-##########################################
-### Цвета и основные заготовки вывода: ###
-##########################################
- _end='m'; _nc='\033[0'; _bld='\033[1'; _sma='\033[2'; _cur='\033[3'; _under='\033[4'; _blink='\033[5';
-_col() { echo -e ${_nc}';'$1${_end}; }
-_bcol() { echo -e ${_bld}';'$1${_end}; }
-
-if [ -t 1 ] && $DEBUG_OUT && ! $NO_COLOR; then
-    nc=(${_nc}${_end}); bld=(${_bld}${_end}); bnc=(${nc}${bld})
-    red=$(_col 31); green=$(_col 32); yell=$(_col 33); blue=$(_col 34); mag=$(_col 35); cyn=$(_col 36); white=$(_col 37);
-    bred=$(_bcol 31); bgreen=$(_bcol 32); byell=$(_bcol 33); bblue=$(_bcol 34); bmag=$(_bcol 35); bcyn=$(_bcol 36); bwhite=$(_bcol 37);
-    rev=$(tput rev);
-    sym_ok="${green}✅${bnc}"; sym_err="${red}❌${nc}"; install="${bnc}💿${nc}";
-    sym_info="${bblue}📋${nc}";sym_warn="${byell}⚠️${nc}"; sym_dbg="${bwhite}🔧${nc}"; sym_star="${byell}✨${nc}";
-else
-    nc=''; bld='';
-    red=''; green=''; yell=''; blue=''; mag=''; cyn=''; white='';
-    bred=''; bgreen=''; byell=''; bblue=''; bmag=''; bcyn=''; bwhite='';
-    rev='';
-    sym_ok='✅'; sym_err='❌'; install='💿'; sym_info='📋'; sym_warn='⚠'; sym_dbg='🔧'; sym_star='✨';
-fi
-toend=$(tput hpa $(tput cols))$(tput cub 6);
-_resh=$(printf '\x23');
-
-#printf "$toend %s\n" "$_resh";
-
-app_title() {
-    local name=${pr_name:-$dir_name};
-    printf " ${bnc}[${nc}${bmag}${name}${bnc}]${nc}";
+# --> ПЛАШКА РАЗДЕЛА <--
+# - выводит плашку с названием и описанием при входе в раздел -
+eli_banner() {
+    local title="$1"
+    local desc="$2"
+printf "  ${bmag} ┌──────────────────────────────────────────────────────────────────────────────${nc}\n";
+printf "  ${bmag} │   ${sym_star}${bnc}   $title   ${sym_star}                                   ${nc}\n";
+printf "  ${bmag} └──────────────────────────────────────────────────────────────────────────────${nc}\n";
+    if [[ -n "$desc" ]]; then
+        printf "\n  ${bnc} %s${nc}\n" " ${desc//$'\n'/$'\n'  }"
+    fi
+    printf "${nc}${bmag}%s\n${bnc}" "    $dashes"
+    printf "${nc}"
+    printf -v MENUSTR "Меню раздела ${title}:"
 }
-printstr() {
-    local _head=$(app_title);local _str;
-    printf "$_head $3 $2${bnc}$1${byell} %s\n${nc}" "$4";
-}
-
-stars="${byell}✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨✨${nc}";
-line="##############################################################";
-dashes='------------------------------------------------------------------------------'
-equals='============================================================'
-
-eli_brand1="The VPS of Eli v${ELI_VERSION}";
-eli_brand2="scrp by ERITEK & Loo1  Claude (Anthropic)";
 
 # --> ГЛАВНЫЙ ЗАГОЛОВОК <--
 # - выводит баннер The VPS of Eli, очищает экран -
+eli_brand1="The VPS of Eli v${ELI_VERSION}";
+eli_brand2="scrp by ERITEK & Loo1  Claude (Anthropic)";
 eli_header() {
     clear
 printf "\n";
@@ -119,22 +102,6 @@ printf "  ${bnc} ║                                                            
 printf "  ${bnc} ║                                                                              ║\n";
 printf "  ${bnc} ║                              ${sym_star}${mag} Хорошего дня! ${sym_star}${bnc}                             ║\n";
 printf "  ${bnc} ╚══════════════════════════════════════════════════════════════════════════════╝${nc}\n";
-}
-
-# --> ПЛАШКА РАЗДЕЛА <--
-# - выводит плашку с названием и описанием при входе в раздел -
-eli_banner() {
-    local title="$1"
-    local desc="$2"
-printf "  ${bmag}┌────────────────────────────────────────────────────────────────────────────────────${bnc}\n";
-printf "  ${bmag}│${byell}✨${bnc}          $title                                              ${byell}✨${bnc}\n";
-printf "  ${bmag}└─────────────────────────────────────────────────────────────────────────────────────${bnc}\n";
-    if [[ -n "$desc" ]]; then
-        echo ""
-        echo -e "  ${bnc}${desc}${nc}"
-    fi
-printf "%s\n" "$dashes";
-    echo ""
 }
 
 # --> ФУНКЦИИ ВВОДА <--
@@ -209,7 +176,7 @@ eli_read_line() {
 }
 
 eli_read_choice() {
-    eli_read_line "  ${BOLD}Выбор:${NC} " "$1"
+    eli_read_line "\n    ${bld}Выбор: " "$1"
 }
 
 ask() {
@@ -327,6 +294,10 @@ validate_ip() {
         (( o > 255 )) && return 1
     done
     return 0
+}
+
+validate_tunnel_iface() {
+    [[ 'awg show 2>/dev/null | grep -q "interface: $1"' ]] || return 1
 }
 
 validate_port() {
@@ -551,7 +522,7 @@ book_init() {
         '{
             "_meta":{"version":$ver,"created":$now,"updated":$now,"host":$host,"server_ip":$ip},
             "system":{"os":"","kernel":"","arch":"","main_iface":"","server_ip":$ip,"ssh_port":22,"permit_root_login":""},
-            "awg":{"installed":false,"version":"","setup_dir":"/etc/wg-dashboard/configs/awg","conf_dir":"/etc/amnezia/amneziawg","interfaces":{}},
+            "awg":{"installed":false,"version":"","setup_dir":"$AWG_SETUP_DIR","conf_dir":"$AWG_HOME_DIR","interfaces":{}},
             "outline":{"installed":false,"server_ip":"","api_port":0,"mgmt_port":0,"keys_port":0,"manager_key_path":"/etc/outline/manager_key.json","api_url":"","installed_at":""},
             "3xui":{"installed":false,"version":"","server_ip":"","panel_port":0,"panel_path":"","panel_user":"","panel_pass":"","db_path":"","installed_at":""},
             "teamspeak":{"installed":false,"version":"","server_ip":"","voice_port":9987,"ft_port":30033,"threads":2,"priv_key":"","db_path":"/opt/teamspeak/tsserver.sqlitedb","installed_at":""},

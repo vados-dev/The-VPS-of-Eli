@@ -47,12 +47,15 @@ backup_create() {
     fi
 
     # - AWG: env, ключи, клиенты -
-    if [[ -d /etc/amnezia/awg-setup ]]; then
-        _bkp_cp /etc/amnezia/awg-setup "${tmpdir}/awg-setup" "AWG setup (env, ключи, клиенты)"
+    if [[ -d $AWG_SETUP_DIR ]]; then
+        _bkp_cp $AWG_SETUP_DIR "${tmpdir}/$AWG_SETUP" "AWG setup (env, ключи, клиенты)"
     fi
-    if [[ -d /etc/amnezia/amneziawg ]]; then
+    if [[ -d $AWG_SCRIPTS_DIR ]]; then
+        _bkp_cp $AWG_SCRIPTS_DIR "${tmpdir}/$AWG_SCRIPTS" "AWG scripts (скрипты)"
+    fi
+    if [[ -d $AWG_CONF_DIR ]]; then
         mkdir -p "${tmpdir}/amnezia-conf"
-        if cp -a /etc/amnezia/amneziawg/*.conf "${tmpdir}/amnezia-conf/" 2>/dev/null; then
+        if cp -a $AWG_CONF_DIR/*.conf "${tmpdir}/amnezia-conf/" 2>/dev/null; then
             local nconf
             nconf=$(ls "${tmpdir}/amnezia-conf/"*.conf 2>/dev/null | wc -l)
             if [[ "$nconf" -gt 0 ]]; then
@@ -396,7 +399,7 @@ backup_restore() {
     fi
 
     # - AWG setup -
-    if [[ -d "${root}/amnezia/awg-setup" ]]; then
+    if [[ -d "${root}/$AWG_SETUP" ]]; then
         # - останавливаем все AWG интерфейсы -
         for unit in /etc/systemd/system/multi-user.target.wants/awg-quick@*.service; do
             [ -e "$unit" ] || continue
@@ -404,16 +407,22 @@ backup_restore() {
             iface=$(basename "$unit" | sed 's/^awg-quick@//;s/\.service$//')
             systemctl stop "awg-quick@${iface}" 2>/dev/null || true
         done
-        cp -a "${root}/amnezia/awg-setup" /etc/amnezia/awg-setup 2>/dev/null || true
-        chmod 700 /etc/amnezia/awg-setup
-        find /etc/amnezia/awg-setup -type f -exec chmod 600 {} \;
+        cp -a "${root}/$AWG_SETUP" $AWG_SETUP_DIR 2>/dev/null || true
+        chmod 700 $AWG_SETUP_DIR
+        find $AWG_SETUP_DIR -type f -exec chmod 600 {} \;
         print_ok "AWG setup (env, ключи, клиенты)"
+        restored=$(( restored + 1 ))
+
+        cp -a "${root}/$AWG_SCRIPTS" $AWG_SCRIPTS_DIR 2>/dev/null || true
+        chmod 700 $AWG_SCRIPTS_DIR
+        find $AWG_SCRIPTS_DIR -type f -exec chmod 700 {} \;
+        print_ok "AWG scripts (скрипты)"
         restored=$(( restored + 1 ))
     fi
     if [[ -d "${root}/amnezia-conf" ]]; then
-        mkdir -p /etc/amnezia/amneziawg
-        cp -a "${root}/amnezia-conf/"*.conf /etc/amnezia/amneziawg/ 2>/dev/null || true
-        chmod 600 /etc/amnezia/amneziawg/*.conf 2>/dev/null || true
+        mkdir -p /etc/VPN/amneziawg
+        cp -a "${root}/amnezia-conf/"*.conf /etc/VPN/amneziawg/ 2>/dev/null || true
+        chmod 600 /etc/VPN/amneziawg/*.conf 2>/dev/null || true
         print_ok "AWG конфиги"
         restored=$(( restored + 1 ))
         # - запускаем интерфейсы -
