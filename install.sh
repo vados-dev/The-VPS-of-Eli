@@ -28,6 +28,7 @@ exit 0
 }
 
 _install() {
+    mkdir -p ${ELI_ROOT}/${ELI_BIN}
     cp ${cur_dir}/.env/.eli ${HOME_DIR}/
     cat ${cur_dir}/.env/.bashrc >> ${HOME_DIR}/.bashrc
     source ~/.bashrc
