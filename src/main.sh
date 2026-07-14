@@ -877,7 +877,8 @@ menu_tgbot() {
 eli_main() {
     eli_header
       while true; do
-        printf "${bnc}    %s${bnc}\n" "$(align::left $COLS_NUM "Меню главного раздела:")"
+
+        printf "${bnc}    %s${bnc}\n" "$(align::left $COLS_NUM "Меню главного раздела: ")"
         printf "   \e[44m╔%s╗${bnc}\n" "$(align::left $COLS_NUM "$equals")"
         printf "   \e[44m║${blub}%s║${bnc}\n" "$(align::left $COLS_NUM " 1  -  VPN и прокси (AmneziaWG, 3X-UI, Outline, MTProto, Signal)")"
         printf "   \e[44m║${blub}%s║${bnc}\n" "$(align::left $COLS_NUM " 2  -  Обслуживание и диагностика")"

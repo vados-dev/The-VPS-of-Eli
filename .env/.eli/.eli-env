@@ -77,7 +77,7 @@ bnc=$(_c 0s);
 #[ "$2" == "st" ] && printf ${_strt}$1m; [ "$2" == "bst" ] && printf ${_bld}$1m${strt};
 #}
 
-if ! [ $NO_COLOR ]; then
+if [ "$NO_COLOR" != true ]; then
     blk=$(_c K); red=$(_c R); grn=$(_c G); yel=$(_c Y); blu=$(_c Bkh); mag=$(_c Mkh); cy=$(_c Ckh); wh=$(_c Wkh);
     blkb=$(_c Wk); redb=$(_c Wrs); grnb=$(_c Gfn); yelb=$(_c Byf); blub=$(_c Wbs); magb=$(_c Wms); cyb=$(_c Cfn); whb=$(_c Kwf);
     bblk=$(_c Ks); bred=$(_c Rs); bgrn=$(_c Gs); byel=$(_c Ys); bblu=$(_c Bks); bmag=$(_c Mks); bcy=$(_c Cks); bwh=$(_c Wks);
