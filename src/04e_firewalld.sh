@@ -79,11 +79,7 @@ fw_show_status() {
         log_ok "${FW_NAME}: активен"
     echo ""
     echo -e "  ${bnc}Правила:${nc}"
-    if fw_active; then
         ${fwcmd} --list-all #2>/dev/null | grep -v "^Status:" | sed 's/^/  /' || true
-#    else
-        # - при выключенном UFW status пуст, показываем отложенные правила -
-#        ufw show added 2>/dev/null | grep -v "^Added user rules" | sed 's/^/  /' || true
     fi
     echo ""
     return 0
@@ -102,7 +98,6 @@ fw_toggle() {
     else
         print_warn "${FW_NAME} неактивен"
         local ssh_port; ssh_port=$(ssh_get_port)
-        # - проверяем через 'ufw show added' (видит правила и при неактивном UFW) -
         if ! _fw_has_rule "$ssh_port" "tcp" && ! _fw_has_rule "$ssh_port"; then
             print_warn "SSH порт ${ssh_port} не найден в правилах!"
             local add=""
