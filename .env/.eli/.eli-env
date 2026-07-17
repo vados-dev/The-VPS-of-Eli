@@ -151,6 +151,74 @@ dashes='────────────────────────
 equals='═══════════════════════════════════════════════════════════════════════════════'
 spaces='                                                                               '
 
+################################
+### Функция заполнения строк ###
+################################
+#"★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★"
+#align_left() {
+#local menu_str="$1" local len=$(("$LINES_LEN-${#menu_str}")) # line=${3:-$spaces}; #echo "$len"; printf "$menu_str %-${len}s \n" #printf "%s%-${len}s" "$text" # "${line:${#string}}"; echo ; # "${3:${#var}}"
+#}
+align::left() {
+  local -i width=${1:?}
+  local -- str=${2:?}
+  local -i length=$((${#str} > width ? width : ${#str}))
+  local -i pad_right=$((width - length))
+  printf '%s%*s' "${str:0:length}" $pad_right ''
+}
+align::right() {
+  local -i width=${1:?}
+  local -- str=${2:?}
+  local -i length=$((${#str} > width ? width : ${#str}))
+  local -i offset=$((${#str} - length))
+  local -i pad_left=$((width - length))
+  printf '%*s%s' $pad_left '' "${str:offset:length}"
+}
+align::center() {
+  local -i width=${1:?}
+  local -- str=${2:?}
+  local -i length=$((${#str} > width ? width : ${#str}))
+  local -i offset=$(((${#str} - length) / 2))
+  local -i pad_left=$(((width - length) / 2))
+  local -i pad_right=$((width - length - pad_left))
+  printf '%*s%s%*s' $pad_left '' "${str:offset:length}" $pad_right ''
+}
+eli_banner() {
+    local title="$1"
+    local desc="$2"
+printf "  ${bmag} ┌──────────────────────────────────────────────────────────────────────────────${nc}\n";
+printf "  ${bmag} │   ${sym_star}${bnc}   $title   ${sym_star}                                   ${nc}\n";
+printf "  ${bmag} └──────────────────────────────────────────────────────────────────────────────${nc}\n";
+    if [[ -n "$desc" ]]; then
+        printf "\n  ${bnc} %s${nc}\n" " ${desc//$'\n'/$'\n'  }"
+    fi
+    printf "${nc}${bmag}%s\n${bnc}" "    $dashes"
+    printf "${nc}"
+    printf -v MENUSTR "Меню раздела ${title}:"
+}
+# --> ГЛАВНЫЙ ЗАГОЛОВОК <--
+# - выводит баннер The VPS of Eli, очищает экран -
+eli_brand1="The VPS of Eli v${ELI_VERSION}";
+eli_brand2="scrp by ERITEK & Loo1  Claude (Anthropic)";
+eli_header() {
+    clear
+printf "\n";
+printf "  ${bnc} ╔══════════════════════════════════════════════════════════════════════════════╗\n";
+printf "  ${bnc} ║                                                                              ║\n";
+printf "  ${bnc} ║${bmag}   █████╗ ███╗   ███╗███╗   ██╗███████╗███████╗██╗ █████╗ ██╗    ██╗ ██████╗  ${bnc}║\n";
+printf "  ${bnc} ║${bmag}  ██╔══██╗████╗ ████║████╗  ██║╚══███╔╝██╔════╝██║██╔══██╗██║    ██║██╔════╝  ${bnc}║\n";
+printf "  ${bnc} ║${bmag}  ███████║██╔████╔██║██╔██╗ ██║  ███╔╝ █████╗  ██║███████║██║ █╗ ██║██║  ███╗ ${bnc}║\n";
+printf "  ${bnc} ║${bmag}  ██╔══██║██║╚██╔╝██║██║╚██╗██║ ███╔╝  ██╔══╝  ██║██╔══██║██║███╗██║██║   ██║ ${bnc}║\n";
+printf "  ${bnc} ║${bmag}  ██║  ██║██║ ╚═╝ ██║██║ ╚████║███████╗███████╗██║██║  ██║╚███╔███╔╝╚██████╔╝ ${bnc}║\n";
+printf "  ${bnc} ║${bmag}  ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═══╝╚══════╝╚══════╝╚═╝╚═╝  ╚═╝ ╚══╝╚══╝  ╚═════╝  ${bnc}║\n";
+printf "  ${bnc} ║                                                                              ║\n";
+printf "  ${bnc} ║                           %s                              ║\n" "$eli_brand1";
+printf "  ${bnc} ║                  %s                   ║\n" "$eli_brand2";
+printf "  ${bnc} ║                                                                              ║\n";
+printf "  ${bnc} ║                                                                              ║\n";
+printf "  ${bnc} ║                              ${sym_star}${mag} Хорошего дня! ${sym_star}${bnc}                             ║\n";
+printf "  ${bnc} ╚══════════════════════════════════════════════════════════════════════════════╝${nc}\n";
+}
+
 ###########################
 ### Функции логирования ###
 ###########################
@@ -196,4 +264,114 @@ print_err()     { log_error "$1"; }
 print_section() {
     printf "\n  ${bmag} ${resh}${bnc}$1${nc}\n"
     printf "   ${bmag}${dashes}${nc}\n";
+}
+
+eli_tty_reset() {
+    [[ -r /dev/tty ]] && stty sane -ixon -ixoff < /dev/tty 2>/dev/null || true
+}
+
+eli_read_line() {
+    local __eli_prompt="$1" __eli_varname="$2" __eli_default="${3:-}"
+    local __eli_input="" __eli_ch="" __eli_old_stty="" __eli_esc_tail=""
+
+    if [[ -r /dev/tty && -w /dev/tty ]]; then
+        # Если основной вывод сейчас идёт через pipe/FIFO, даём tee допечатать предыдущую строку.
+        [[ ! -t 1 || ! -t 2 ]] && sleep 0.05
+        printf '%b' "$__eli_prompt" > /dev/tty
+
+        __eli_old_stty=$(stty -g < /dev/tty 2>/dev/null || true)
+        stty -echo -icanon min 1 time 0 < /dev/tty 2>/dev/null || true
+
+        while IFS= read -r -s -n 1 __eli_ch < /dev/tty; do
+            case "$__eli_ch" in
+                ""|$'\r'|$'\n')
+                    printf '\n' > /dev/tty
+                    break
+                    ;;
+                $'\177'|$'\b')
+                    if [[ -n "$__eli_input" ]]; then
+                        __eli_input="${__eli_input%?}"
+                        printf '\b \b' > /dev/tty
+                    fi
+                    ;;
+                $'\003')
+                    [[ -n "$__eli_old_stty" ]] && stty "$__eli_old_stty" < /dev/tty 2>/dev/null || eli_tty_reset
+                    printf '\n' > /dev/tty
+                    kill -INT $$
+                    return 130
+                    ;;
+                $'\004')
+                    printf '\n' > /dev/tty
+                    break
+                    ;;
+                $'\025')
+                    while [[ -n "$__eli_input" ]]; do
+                        __eli_input="${__eli_input%?}"
+                        printf '\b \b' > /dev/tty
+                    done
+                    ;;
+                $'\033')
+                    # Игнор ESC/стрелок, чтобы в меню не попадали escape-последовательности.
+                    read -r -s -n 2 -t 0.01 __eli_esc_tail < /dev/tty 2>/dev/null || true
+                    ;;
+                *)
+                    __eli_input+="$__eli_ch"
+                    printf '%s' "$__eli_ch" > /dev/tty
+                    ;;
+            esac
+        done
+
+        [[ -n "$__eli_old_stty" ]] && stty "$__eli_old_stty" < /dev/tty 2>/dev/null || eli_tty_reset
+    else
+        eli_tty_reset
+        printf '%b' "$__eli_prompt" >&2
+        IFS= read -r __eli_input || __eli_input=""
+    fi
+    [[ -z "$__eli_input" && -n "$__eli_default" ]] && __eli_input="$__eli_default"
+    printf -v "$__eli_varname" '%s' "$__eli_input"
+}
+
+eli_read_choice() {
+    eli_read_line "\n    ${bld}Выбор: " "$1"
+}
+
+ask() {
+    local prompt="$1" default="$2" varname="$3" p
+    if [[ -n "$default" ]]; then
+        p=$(printf '  %b%s%b [%s]: ' "$BOLD" "$prompt" "$NC" "$default")
+    else
+        p=$(printf '  %b%s%b: ' "$BOLD" "$prompt" "$NC")
+    fi
+    eli_read_line "$p" "$varname" "$default"
+}
+
+ask_yn() {
+    local prompt="$1" default="$2" varname="$3" value="" p
+    while true; do
+        if [[ "$default" == "y" ]]; then
+            p=$(printf '  %b%s%b [Y/n]: ' "$BOLD" "$prompt" "$NC")
+        else
+            p=$(printf '  %b%s%b [y/N]: ' "$BOLD" "$prompt" "$NC")
+        fi
+
+        eli_read_line "$p" value "$default"
+        case "${value,,}" in
+            y|yes) printf -v "$varname" 'yes'; return ;;
+            n|no)  printf -v "$varname" 'no';  return ;;
+            *) print_warn "Введите y или n" ;;
+        esac
+    done
+}
+
+# - usage: ask_raw "Текст: " varname [default] -
+ask_raw() {
+    local prompt="$1" varname="$2" default="${3:-}"
+    eli_read_line "$prompt" "$varname" "$default"
+}
+
+# --> ПАУЗА И ВОЗВРАТ В МЕНЮ <--
+# - стандартная пауза после выполнения действия -
+eli_pause() {
+    echo ""
+    eli_read_line "  ${BOLD}Нажми Enter для возврата в меню...${NC}" _
 }
