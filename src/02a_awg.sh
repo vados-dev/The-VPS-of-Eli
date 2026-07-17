@@ -1195,11 +1195,10 @@ awg_export_keenetic() {
 }
 
 # --> AWG: ПУТИ ПО ИМЕНИ ИНТЕРФЕЙСА <--
-awg_iface_env()    { echo "${AWG_SETUP_DIR}/iface_${1}.env"; }
-awg_iface_keys()   { echo "${AWG_SETUP_DIR}/server_${1}"; }
-awg_iface_clients(){ echo "${AWG_SETUP_DIR}/clients_${1}"; }
-awg_iface_conf()   { echo "${AWG_CONF_DIR}/${1}.conf"; }
-
+awg_iface_env()     { echo "${AWG_SETUP_DIR}/iface_${1}.env"; }
+awg_iface_keys()    { echo "${AWG_SETUP_DIR}/server_${1}"; }
+awg_iface_clients() { echo "${AWG_SETUP_DIR}/clients_${1}"; }
+awg_iface_conf()    { echo "${AWG_CONF_DIR}/${1}.conf"; }
 # --> AWG: СПИСОК ИНТЕРФЕЙСОВ <--
 awg_get_iface_list() {
     local result=()
@@ -2118,9 +2117,12 @@ SYSEOF
     clients_dir=$(awg_iface_clients "$iface")
     local conf
     conf=$(awg_iface_conf "$iface")
+    local scripts_dir
+    scripts_dir="$AWG_SCRIPTS_DIR/$iface"
 
-    mkdir -p "$keys_dir" "$clients_dir" "$AWG_CONF_DIR"
-    chmod 700 "$keys_dir" "$clients_dir"
+    mkdir -p "$keys_dir" "$clients_dir" "$AWG_CONF_DIR" "$scripts_dir"
+    chmod 700 "$keys_dir" "$clients_dir" "$scripts_dir"
+    cp -f "$AWG_SCRIPTS_DIR/templates/*" "$scripts_dir/"
 
     awg genkey | tee "${keys_dir}/server.key" | awg pubkey > "${keys_dir}/server.pub"
     local srv_priv srv_pub
@@ -2136,8 +2138,8 @@ MTU = ${tunnel_mtu}
 ListenPort = ${srv_port}
 PrivateKey = ${srv_priv}
 $(_awg_obf_conf_lines)
-PostUp = iptables -A FORWARD -i ${iface} -j ACCEPT; iptables -A FORWARD -o ${iface} -j ACCEPT; iptables -t nat -A POSTROUTING -o ${main_iface} -j MASQUERADE; iptables -t mangle -A FORWARD -o ${iface} -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu; iptables -t mangle -A FORWARD -i ${iface} -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
-PostDown = iptables -D FORWARD -i ${iface} -j ACCEPT || true; iptables -D FORWARD -o ${iface} -j ACCEPT || true; iptables -t nat -D POSTROUTING -o ${main_iface} -j MASQUERADE || true; iptables -t mangle -D FORWARD -o ${iface} -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu || true; iptables -t mangle -D FORWARD -i ${iface} -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu || true
+PostUp = 
+PostDown = 
 CONFEOF
     chmod 600 "$conf"
 
@@ -2528,19 +2530,19 @@ awg_create_iface() {
     done
 
     # - MTU туннеля -
-    local tunnel_mtu="1320"
+    local tunnel_mtu="1420"
     echo ""
-    echo -e "  ${BOLD}MTU туннеля:${NC}"
-    echo -e "  ${GREEN}1)${NC} 1280 - максимальная совместимость"
-    echo -e "  ${GREEN}2)${NC} 1320 - баланс (рекомендуется)"
-    echo -e "  ${GREEN}3)${NC} 1420 - максимальная скорость"
+    echo -e "  ${bnc}MTU туннеля:"
+    echo -e "  ${bnc}1) 1280 - максимальная совместимость"
+    echo -e "  ${bnc}2) 1320 - баланс (рекомендуется)"
+    echo -e "  ${bmag}3${bnc}) 1420 - максимальная скорость"
     while true; do
-        ask_raw "$(printf '  \033[1mВыбор?\033[0m [2]: ')" mtu_ch
-        case "${mtu_ch:-2}" in
+        ask_raw "$(printf '  \033[1mВыбор?\033[0m [3]: ')" mtu_ch
+        case "${mtu_ch:-3}" in
             1) tunnel_mtu="1280"; break ;;
             2) tunnel_mtu="1320"; break ;;
             3) tunnel_mtu="1420"; break ;;
-            *) print_warn "1, 2 или 3" ;;
+            *) tunnel_mtu="1420"; break ;;
         esac
     done
 
@@ -2554,7 +2556,8 @@ awg_create_iface() {
         case "$AWG_VER" in
             2.0) _awg_gen_obf_v2  "$gen_obf" "$tunnel_mtu" ;;
             1.5) _awg_gen_obf_v15 "$gen_obf" "$tunnel_mtu" ;;
-            *)   _awg_gen_obf_v1  "$gen_obf" "$tunnel_mtu" ;;
+              1) _awg_gen_obf_v1  "$gen_obf" "$tunnel_mtu" ;;
+              *) _awg_gen_obf_v2  "$gen_obf" "$tunnel_mtu" ;;
         esac
     fi
 
@@ -2567,6 +2570,10 @@ awg_create_iface() {
     local srv_priv
     srv_priv=$(cat "${keys_dir}/server.key")
 
+    local scripts_dir
+    scripts_dir="$AWG_SCRIPTS_DIR/$iface"
+    mkdir -p "$scripts_dir"
+    cp -f "$AWG_SCRIPTS_DIR/templates/*" "$scripts_dir/"
     local conf
     conf=$(awg_iface_conf "$iface")
     mkdir -p "$AWG_CONF_DIR"
@@ -2577,8 +2584,8 @@ MTU = ${tunnel_mtu}
 ListenPort = ${port}
 PrivateKey = ${srv_priv}
 $(_awg_obf_conf_lines)
-PostUp = iptables -A FORWARD -i ${iface} -j ACCEPT; iptables -A FORWARD -o ${iface} -j ACCEPT; iptables -t nat -A POSTROUTING -o ${main_iface} -j MASQUERADE; iptables -t mangle -A FORWARD -o ${iface} -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu; iptables -t mangle -A FORWARD -i ${iface} -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
-PostDown = iptables -D FORWARD -i ${iface} -j ACCEPT || true; iptables -D FORWARD -o ${iface} -j ACCEPT || true; iptables -t nat -D POSTROUTING -o ${main_iface} -j MASQUERADE || true; iptables -t mangle -D FORWARD -o ${iface} -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu || true; iptables -t mangle -D FORWARD -i ${iface} -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu || true
+PostUp = ${scripts_dir}/PostUp.sh ${port} ${srv_tunnel_ip}
+PostDown = ${scripts_dir}/PostDown.sh ${port} ${srv_tunnel_ip}
 CONFEOF
     chmod 600 "$conf"
     mkdir -p "$(awg_iface_clients "$iface")"; chmod 700 "$(awg_iface_clients "$iface")"
