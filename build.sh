@@ -14,8 +14,11 @@ _OUT_FILE=${SCRIPT_DIR}/${DIR_NAME:-"the_vps_of_eli"}.sh
 OUT_FILE=${3:-$_OUT_FILE}
 
 #SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-#SRC_DIR="${SCRIPT_DIR}/src"
-#OUT_FILE="${SCRIPT_DIR}/${DIR_NAME}.sh"
+#SRC_DIR="${SCRIPT_DIR}/src" #OUT_FILE="${SCRIPT_DIR}/${DIR_NAME}.sh"
+
+FW_TYPE="firewalld"
+
+if [[ "$FW_TYPE" = "firewalld" ]]; then fw="04e_firewalld.sh"; elif [[ "$FW_TYPE" = "ufw" ]]; then fw="04e_ufw.sh"; fi
 
 # - порядок сборки: header -> модули -> меню -> entry -
 FILES=(
@@ -31,7 +34,7 @@ FILES=(
     "04b_diag.sh"
     "04c_prayer.sh"
     "04d_ssh.sh"
-    "04e_ufw.sh"
+    "$fw"
     "04f_update.sh"
     "04g_routine.sh"
     "04h_telegrambot.sh"

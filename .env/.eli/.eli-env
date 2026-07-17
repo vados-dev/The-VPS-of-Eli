@@ -1,3 +1,15 @@
+set -o pipefail  # trace ERR through pipes
+#set -o errtrace  # trace ERR through 'time command' and other functions
+function error() {
+    JOB="$0"              # job name
+    LASTLINE="$1"         # line of error occurrence
+    LASTERR="$2"          # error code
+    printf "${JOB} : code ${LASTERR} line ${LASTLINE}" #    echo "in ${JOB} : line ${LASTLINE} exit code ${LASTERR}"
+    exit 1
+}
+trap 'error ${LINENO} ${?}' ERR
+#set -e
+
 ###################
 ### Переменные: ###
 ###################
@@ -10,11 +22,10 @@ app_name=${1:-$script_name};
 pr_name=${2:-$app_name};
 
 # Log
-SAVE_LOG=false
+SAVE_LOG=true
 DEFAULT_LOG="$ELI_ROOT/logs/$app_name.log"
 
 # For colors
-DEBUG_OUT=true
 COLS_NUM=79
 NO_COLOR=false;
 
@@ -39,6 +50,18 @@ AWG_SCRIPTS_DIR=${AWG_HOME_DIR:-"/etc/amnezia"}/${AWG_SCRIPTS}
 AWG_ACTIVE_IFACE=""
 AWG_VER="2.0"
 AWG_DNS="8.8.4.4"
+
+################
+### FIREWALL ###
+################
+FW_TYPE="firewalld"
+FW_NAME="FIREWALLD"
+FW_SERVICE="${FW_TYPE}.service"
+
+# Альяс команды firewall-cmd
+if [ "$fwcmd" = "" ] || [ ! "$fwcmd" ] || [ "$fwcmd" != $(which firewall-cmd) ]; then
+    fwcmd=$(which firewall-cmd)
+fi
 
 ##########################################
 ### Цвета и основные заготовки вывода: ###
@@ -77,7 +100,7 @@ bnc=$(_c 0s);
 #[ "$2" == "st" ] && printf ${_strt}$1m; [ "$2" == "bst" ] && printf ${_bld}$1m${strt};
 #}
 
-if [ "$NO_COLOR" != true ]; then
+if ! [ $NO_COLOR ] || [ $NO_COLOR != true ] || ! [; then
     blk=$(_c K); red=$(_c R); grn=$(_c G); yel=$(_c Y); blu=$(_c Bkh); mag=$(_c Mkh); cy=$(_c Ckh); wh=$(_c Wkh);
     blkb=$(_c Wk); redb=$(_c Wrs); grnb=$(_c Gfn); yelb=$(_c Byf); blub=$(_c Wbs); magb=$(_c Wms); cyb=$(_c Cfn); whb=$(_c Kwf);
     bblk=$(_c Ks); bred=$(_c Rs); bgrn=$(_c Gs); byel=$(_c Ys); bblu=$(_c Bks); bmag=$(_c Mks); bcy=$(_c Cks); bwh=$(_c Wks);
@@ -128,14 +151,49 @@ dashes='────────────────────────
 equals='═══════════════════════════════════════════════════════════════════════════════'
 spaces='                                                                               '
 
-# --> ФУНКЦИИ ВЫВОДА <--
-# - единый набор для всего скрипта -
-print_ok()      { printstr "$1 %s\n" "$sym_ok"; }
-print_warn()    { printstr "$1 %s\n" "$sym_warn"; }
-print_err()     { printstr "${bred}$1${nc} %s\n" "$sym_err"; }
-print_info()    { printstr "$1 %s\n" "$sym_star"; }
+###########################
+### Функции логирования ###
+###########################
+save_log() {
+    local log="${DEFAULT_LOG}";
+    local _error;
+    if ${SAVE_LOG}; then
+        if ! mkdir -p "$(dirname "${log}")" || ! echo $* >> "${log}" >/dev/null 2>&1; then
+            printstr "Ошибка записи лога '${log}'. ${bred}ERROR:${nc} " "$?" "$sym_err";
+            exit 1;
+        fi
+    fi
+}
+log_msg() {
+    local type="$1";local msg="$2";
+    local ts=$(date '+%b %d %T');
+    local entry="[$ts] $type: $msg";
+    case "$type" in
+        INFO)  printstr "${bblue}$type: ${bnc}$msg" "$sym_info" ;;
+        OK)    printstr "${bgrn}$type: ${bnc}$msg" "$sym_ok" ;;
+        WARN)  printstr "${byel}$type: ${bnc}$msg" "$sym_warn" ;;
+        ERROR) printstr "${bred}$type: ${bnc}$msg" "$sym_err" >&2 ;;
+        DEBUG) printstr "${bwh}$type: ${bnc}$msg" "$sym_dbg" >&2 ;;
+        *) app_title "Error" "$sym_err" ;;
+    esac
+    save_log "$entry";
+}
+
+log()       { log_msg "Инфо" "$1"; }
+log_ok()    { log_msg "Ok" "$1"; }
+log_warn()  { log_msg "Зацени" "$1"; }
+log_error() { log_msg "Ошибка" "$1"; }
+log_debug() { log_msg "Отладка" "$1"; }
+die()       { log_error "Сдохла: $1"; log_error "Работа прервана. Лог: $DEFAULT_LOG"; exit 1; }
+
+#log "scrp by ERITEK & Loo1"; #log_warn "scrp by ERITEK & Loo1"; log_error "scrp by ERITEK & Loo1"; log_debug "scrp by ERITEK & Loo1";die; exit 0;
+#print_ok()      { printstr "$1 %s\n" "$sym_ok"; }; print_warn()    { printstr "$1 %s\n" "$sym_warn"; }; print_err()     { printstr "${bred}$1${nc} %s\n" "$sym_err"; }; print_info()    { printstr "$1 %s\n" "$sym_star"; };
+
+print_info()    { log "$1"; }
+print_ok()      { log_ok "$1"; }
+print_warn()    { log_warn "$1"; }
+print_err()     { log_error "$1"; }
 print_section() {
     printf "\n  ${bmag} ${resh}${bnc}$1${nc}\n"
     printf "   ${bmag}${dashes}${nc}\n";
 }
-

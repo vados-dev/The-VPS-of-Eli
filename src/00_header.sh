@@ -248,13 +248,6 @@ validate_os_ver() {
                 exit 1
             fi
             ;;
-#        "ubuntu")
-#            MAJOR_VERSION="${os_ver%%.*}"
-#            if [ "$MAJOR_VERSION" -lt 20 ]; then
-#                echo "Your version of Ubuntu ${os_ver} is not supported. Please use Ubuntu 20.04 or later."
-#                exit 1
-#            fi
-#            ;;
         "almalinux")
             MAJOR_VERSION="${os_ver%%.*}"
             if [ "$MAJOR_VERSION" -lt 9 ]; then
