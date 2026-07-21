@@ -69,23 +69,16 @@ menu_awg() {
   Тест обфускации снимает tcpdump и проверяет применяются ли S1/S2 padding,
     Jc junk-пакеты, H1-H4 mangle и I1 signature chain на реальном handshake."
 
-#        printf "%-${COLS_NUM}s \n${nc}" "${bnc}   ${und}$MENUSTR"
-#        printf "%-${COLS_NUM}s \n${nc}" "  ${blub} 1  -  Установка AmneziaWG"
         printf "${bnc}    ${und}%s${bnc}\n" "$(align::center $COLS_NUM "$MENUSTR")"
-        printf "   ┌%s┐\n" "$(align::left $COLS_NUM "$dashes")"
-        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 1  -  Установка AmneziaWG")"
-        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 2  -  Упрфвление AmneziaWG")"
-        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 3  -  Тест обфускации")"
-        printf "   ├%s${bnc}┤\n" "$(align::left $COLS_NUM "$dashes")"
-        printf "   ├%s${bnc}┤\n" "$(align::left $COLS_NUM "$dashes")"
-        printf "   │${magb}%s${bnc}│\n" "$(align::left $COLS_NUM " 0  -  Назад")"
-        printf "   │${redb}%s${bnc}│\n" "$(align::left $COLS_NUM " q  -  Выход")"
-        printf "   └%s┘\n" "$(align::left $((${COLS_NUM})) "$dashes")"
-#        printf "\n${bnc}    ${blub} 2  -  Управление AmneziaWG                                                               \n${nc}"
-#        printf "    ${blub}${und} 3  -  Тест обфускации                                                               \n${nc}"
-#        printf "    ${bnc}${und}                                                                               \n${nc}"
-#        printf "    ${magb} 0  -  Назад                                                                   \n${nc}"
-#        printf "    ${und}${redb} q  -  Выход                                                                   \n${bnc}"
+        printf "   \e[44m┌%s┐\n" "$(align::left $COLS_NUM "$dashes")"
+        printf "   \e[44m│${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 1  -  Установка AmneziaWG")"
+        printf "   \e[44m│${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 2  -  Управление AmneziaWG")"
+        printf "   \e[44m│${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 3  -  Тест обфускации")"
+        printf "   \e[44m│${blub}${und}%s${bnc}│\n" "$(align::left $COLS_NUM " ")"
+        printf "   \e[45m│${magb}%s${bnc}│\n" "$(align::left $COLS_NUM " ")"
+        printf "   \e[45m│${magb}%s${bnc}│\n" "$(align::left $COLS_NUM " 0  -  Назад")"
+        printf "   \e[41m│${redb}%s${bnc}│\n" "$(align::left $COLS_NUM " q  -  Выход")"
+        printf "   \e[41m└%s┘\n${bnc}" "$(align::left $((${COLS_NUM})) "$dashes")"
         eli_read_choice choice
         printf "${nc}"
         case "$choice" in
@@ -116,18 +109,22 @@ menu_xui() {
 
   Требует: Docker (ставится автоматически в разделе Старт)."
 
-        echo -e "  ${GREEN}1)${NC} Установить 3X-UI"
-        echo -e "  ${GREEN}2)${NC} Статус"
-        echo -e "  ${GREEN}3)${NC} Данные для входа"
-        echo -e "  ${GREEN}4)${NC} Показать inbound'ы"
-        echo -e "  ${GREEN}5)${NC} Бэкап БД"
-        echo -e "  ${GREEN}6)${NC} Переустановить"
-        echo -e "  ${GREEN}7)${NC} Удалить"
-        echo ""
-        echo -e "  ${GREEN}0)${NC} Назад"
-        echo ""
+        printf "${bnc}    ${und}%s${bnc}\n" "$(align::center $COLS_NUM "$MENUSTR")"
+        printf "   ┌%s┐\n" "$(align::left $COLS_NUM "$dashes")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 1  -  Установить 3X-UI")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 2  -  Статус")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 3  -  Данные для входа")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 4  -  Показать inbound'ы")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 5  -  Бэкап БД")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 6  -  Переустановить")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 7  -  Удалить")"
+        printf "   │${blub}${und}%s${bnc}│\n" "$(align::left $COLS_NUM " ")"
+        printf "   │${magb}%s${bnc}│\n" "$(align::left $COLS_NUM " ")"
+        printf "   │${magb}%s${bnc}│\n" "$(align::left $COLS_NUM " 0  -  Назад")"
+        printf "   │${redb}%s${bnc}│\n" "$(align::left $COLS_NUM " q  -  Выход")"
+        printf "   └%s┘\n${bnc}" "$(align::left $((${COLS_NUM})) "$dashes")"
         eli_read_choice choice
-
+        printf "${nc}"
         case "$choice" in
             1) xui_install       || print_warn "Ошибка при установке 3X-UI" ;;
             2) xui_show_status   || print_warn "Ошибка при показе статуса" ;;
@@ -137,9 +134,9 @@ menu_xui() {
             6) xui_reinstall     || print_warn "Ошибка при переустановке" ;;
             7) xui_delete        || print_warn "Ошибка при удалении" ;;
             0) return 0 ;;
+            q) printf "\n    ${bred}Выход.\n${nc}"; rm -f $LOCKFILE; exit 0 ;;
             *) print_warn "Введите число от 0 до 7" ;;
         esac
-
         eli_pause
         eli_header
     done
@@ -762,21 +759,25 @@ awg_manage() {
   DNS - какой DNS-сервер будут использовать клиенты (Google, Cloudflare
     или свой Unbound, если установлен)."
 
-        echo -e "  ${GREEN}1)${NC} Статус всех интерфейсов"
-        echo -e "  ${GREEN}2)${NC} Создать новый интерфейс"
-        echo -e "  ${GREEN}3)${NC} Включить / выключить"
-        echo -e "  ${GREEN}4)${NC} Перезапустить"
-        echo -e "  ${GREEN}5)${NC} Изменить DNS"
-        echo -e "  ${GREEN}6)${NC} Удалить интерфейс"
-        echo -e "  ${GREEN}7)${NC} Добавить клиента"
-        echo -e "  ${GREEN}8)${NC} Показать конфиг клиента"
-        echo -e "  ${GREEN}9)${NC} Удалить клиента"
-        echo -e "  ${GREEN}10)${NC} Экспорт клиента под Keenetic"
-        echo ""
-        echo -e "  ${GREEN}0)${NC} Назад"
-        echo ""
+        printf "${bnc}    ${und}%s${bnc}\n" "$(align::center $COLS_NUM "$MENUSTR")"
+        printf "   ┌%s┐\n" "$(align::left $COLS_NUM "$dashes")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 1  -  Статус всех интерфейсов")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 2  -  Создать новый интерфейс")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 3  -  Включить / выключить")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 4  -  Перезапустить")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 5  -  Изменить DNS")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 6  -  Удалить интерфейс")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 7  -  Добавить клиента")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 8  -  Показать конфиг клиента")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 9  -  Удалить клиента")"
+        printf "   │${blub}%s${bnc}│\n" "$(align::left $COLS_NUM " 10 -  Экспорт клиента под Keenetic")"
+        printf "   │${blub}${und}%s${bnc}│\n" "$(align::left $COLS_NUM " ")"
+        printf "   │${magb}%s${bnc}│\n" "$(align::left $COLS_NUM " ")"
+        printf "   │${magb}%s${bnc}│\n" "$(align::left $COLS_NUM " 0  -  Назад")"
+        printf "   │${redb}%s${bnc}│\n" "$(align::left $COLS_NUM " q  -  Выход")"
+        printf "   └${redb}%s┘\n" "$(align::left $((${COLS_NUM})) "$dashes")"
         eli_read_choice choice
-
+        printf "${nc}"
         case "$choice" in
             1) awg_show_status    || print_warn "Ошибка при показе статуса" ;;
             2) awg_create_iface   || print_warn "Ошибка при создании интерфейса" ;;
@@ -789,9 +790,9 @@ awg_manage() {
             9) awg_delete_client  || print_warn "Ошибка при удалении клиента" ;;
             10) awg_export_keenetic || print_warn "Ошибка при экспорте под Keenetic" ;;
             0) return 0 ;;
+            q) printf "\n    ${bred}Выход.\n${nc}"; rm -f $LOCKFILE; exit 0 ;;
             *) print_warn "Введите число от 0 до 10" ;;
         esac
-
         eli_pause
         eli_header
     done
